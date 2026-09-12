@@ -2,6 +2,7 @@ import './globals.css';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getSiteUrl } from '@/lib/supabase';
+import RouteProgress from '@/components/RouteProgress';
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const youtubeUrl = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#';
   return <html lang="en"><body>
+    <RouteProgress />
     <header className="header"><div className="container nav">
       <Link className="brand" href="/">The Simplified Charts</Link>
       <nav className="navlinks" aria-label="Primary">
