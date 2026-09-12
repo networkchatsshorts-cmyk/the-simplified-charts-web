@@ -1,0 +1,3 @@
+import type { MetadataRoute } from 'next';
+import { getSupabaseAdmin, getSiteUrl } from '@/lib/supabase';
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> { const db=getSupabaseAdmin(); const [{data:topics},{data:videos}]=await Promise.all([db.from('topics').select('slug'),db.from('videos').select('slug,updated_at').eq('published',true)]); const base=getSiteUrl(); return [{url:base,lastModified:new Date()},...(topics||[]).map(t=>({url:`${base}/topics/${t.slug}`,lastModified:new Date()})),...(videos||[]).map(v=>({url:`${base}/videos/${v.slug}`,lastModified:new Date(v.updated_at)}))]; }
