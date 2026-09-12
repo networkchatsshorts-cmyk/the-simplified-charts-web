@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import CommunityPost from '@/components/CommunityPost';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,99 +18,68 @@ function formatDate(value: string | null | undefined) {
 export default async function HomePage() {
   const db = getSupabaseAdmin();
 
-  const [
-    { data: topics },
-    { data: videos },
-    { data: communityPosts },
-  ] = await Promise.all([
-    db
-      .from('topics')
-      .select('id,name,slug,youtube_playlist_id')
-      .not('youtube_playlist_id', 'is', null)
-      .order('name'),
-
+  const [longResult, shortResult, postResult] = await Promise.all([
     db
       .from('videos')
       .select(
-        'id,title,slug,thumbnail_url,published_at,seo_description,topic_id,content_type'
+        'id,title,slug,thumbnail_url,published_at,seo_description,topic_id'
       )
       .eq('published', true)
+      .eq('content_type', 'long')
+      .not('topic_id', 'is', null)
       .order('published_at', { ascending: false })
-      .limit(500),
-
+      .limit(5),
+    db
+      .from('videos')
+      .select(
+        'id,title,slug,thumbnail_url,published_at,seo_description,topic_id'
+      )
+      .eq('published', true)
+      .eq('content_type', 'short')
+      .order('published_at', { ascending: false })
+      .limit(5),
     db
       .from('community_posts')
-      .select(
-        'id,body,image_url,published_at,created_at,youtube_post_url,published'
-      )
+      .select('*')
       .eq('published', true)
-      .order('published_at', { ascending: false })
-      .limit(1),
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
-  const playlistTopics = (topics || []).filter(
-    (topic: any) =>
-      topic.youtube_playlist_id &&
-      topic.slug !== 'shorts'
+  const longVideos = longResult.data || [];
+  const shortVideos = shortResult.data || [];
+  const latestPost = postResult.data || null;
+
+  const topicIds = [
+    ...new Set(
+      [...longVideos, ...shortVideos]
+        .map((video) => video.topic_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  const { data: topics } = topicIds.length
+    ? await db
+        .from('topics')
+        .select('id,name,slug')
+        .in('id', topicIds)
+    : { data: [] as any[] };
+
+  const topicMap = new Map(
+    (topics || []).map((topic) => [topic.id, topic])
   );
-
-  // Get latest long video from each playlist.
-  const latestLongByPlaylist = new Map<string, any>();
-
-  for (const video of videos || []) {
-    if (video.content_type !== 'long') continue;
-    if (!video.topic_id) continue;
-
-    const current = latestLongByPlaylist.get(video.topic_id);
-
-    if (
-      !current ||
-      new Date(video.published_at || 0).getTime() >
-        new Date(current.published_at || 0).getTime()
-    ) {
-      latestLongByPlaylist.set(video.topic_id, video);
-    }
-  }
-
-  // One latest video per playlist, then globally newest to oldest.
-  const recentLongVideos = playlistTopics
-    .map((topic: any) => {
-      const video = latestLongByPlaylist.get(topic.id);
-
-      return video ? { topic, video } : null;
-    })
-    .filter(Boolean)
-    .sort(
-      (a: any, b: any) =>
-        new Date(b.video.published_at || 0).getTime() -
-        new Date(a.video.published_at || 0).getTime()
-    )
-    .slice(0, 5);
-
-  // Latest five Shorts.
-  const recentShorts = (videos || [])
-    .filter((video: any) => video.content_type === 'short')
-    .sort(
-      (a: any, b: any) =>
-        new Date(b.published_at || 0).getTime() -
-        new Date(a.published_at || 0).getTime()
-    )
-    .slice(0, 5);
-
-  const latestCommunityPost = communityPosts?.[0] || null;
 
   return (
     <main className="container">
       <section className="hero">
         <div className="eyebrow">The Simplified Charts</div>
-
-        <h1>Stock Market Analysis in Hindi</h1>
+        <h1>Stock Analysis Built on a Scored Candle System</h1>
 
         <p className="lead">
-          We Don&apos;t Just Read Candles. We Score Them. Multiple
-          technical parameters drive a structured candle score, which
-          helps identify three key zones: HOLD, CAUTION, and STRUCTURE
-          BREAKDOWN.
+          We Don't Just Read Candles. We Score Them. Multiple technical
+          parameters drive a structured candle score, which helps identify
+          three key zones: HOLD, CAUTION, and STRUCTURE BREAKDOWN.
         </p>
 
         <a
@@ -118,15 +88,15 @@ export default async function HomePage() {
           target="_blank"
           rel="noreferrer"
         >
-          Visit YouTube Channel ↗
+          Direct on YouTube ↗
         </a>
       </section>
 
       <section className="section">
         <div className="topicHeader">
           <div>
-            <div className="eyebrow">Recently uploaded</div>
-            <h2>Long Videos</h2>
+            <div className="eyebrow">Newest long-form analysis</div>
+            <h2>Recent Long Videos</h2>
           </div>
 
           <Link className="btn" href="/long-videos">
@@ -135,61 +105,52 @@ export default async function HomePage() {
         </div>
 
         <div className="grid">
-          {recentLongVideos.map(({ topic, video }: any) => (
-            <article className="card latestCard" key={video.id}>
-              <Link href={`/videos/${video.slug}`}>
-                {video.thumbnail_url && (
-                  <div className="thumbWrap">
-                    <Image
-                      className="thumb"
-                      src={video.thumbnail_url}
-                      alt={video.title}
-                      width={640}
-                      height={360}
-                    />
+          {longVideos.map((video: any) => (
+            <Link
+              className="card"
+              href={`/videos/${video.slug}`}
+              key={video.id}
+            >
+              {video.thumbnail_url && (
+                <div className="thumbWrap">
+                  <Image
+                    className="thumb"
+                    src={video.thumbnail_url}
+                    alt={video.title}
+                    width={640}
+                    height={360}
+                  />
+                </div>
+              )}
+
+              <div className="cardbody">
+                {topicMap.get(video.topic_id)?.name && (
+                  <div className="eyebrow">
+                    {topicMap.get(video.topic_id)?.name}
                   </div>
                 )}
 
-                <div className="cardbody">
-                  <div className="eyebrow">
-                    {topic.name}
+                <h3>{video.title}</h3>
+
+                <p className="small">
+                  {video.seo_description ||
+                    'Long-form stock market analysis from The Simplified Charts.'}
+                </p>
+
+                {video.published_at && (
+                  <div className="videoDate">
+                    Uploaded {formatDate(video.published_at)}
                   </div>
-
-                  <h3>{video.title}</h3>
-
-                  <p className="small">
-                    {video.seo_description || ''}
-                  </p>
-
-                  {video.published_at && (
-                    <div className="videoDate">
-                      Uploaded {formatDate(video.published_at)}
-                    </div>
-                  )}
-                </div>
-              </Link>
-
-              <div className="playlistCta">
-                <Link
-                  className="playlistLink"
-                  href={`/topics/${topic.slug}`}
-                >
-                  <span>
-                    Explore all videos from this playlist
-                  </span>
-                  <span aria-hidden="true">→</span>
-                </Link>
+                )}
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 
-        {!recentLongVideos.length && (
+        {!longVideos.length && (
           <div className="card">
             <div className="cardbody">
-              <p className="small">
-                No long videos available yet.
-              </p>
+              <p className="small">No long videos are available yet.</p>
             </div>
           </div>
         )}
@@ -198,19 +159,19 @@ export default async function HomePage() {
       <section className="section">
         <div className="topicHeader">
           <div>
-            <div className="eyebrow">Recently uploaded</div>
-            <h2>Shorts</h2>
+            <div className="eyebrow">Newest short-form analysis</div>
+            <h2>Recent Shorts</h2>
           </div>
 
           <Link className="btn" href="/shorts">
-            Explore more shorts →
+            Explore more short videos →
           </Link>
         </div>
 
         <div className="grid">
-          {recentShorts.map((video: any) => (
+          {shortVideos.map((video: any) => (
             <Link
-              className="card latestCard"
+              className="card"
               href={`/videos/${video.slug}`}
               key={video.id}
             >
@@ -230,7 +191,8 @@ export default async function HomePage() {
                 <h3>{video.title}</h3>
 
                 <p className="small">
-                  {video.seo_description || ''}
+                  {video.seo_description ||
+                    'Short-form market analysis from The Simplified Charts.'}
                 </p>
 
                 {video.published_at && (
@@ -243,12 +205,10 @@ export default async function HomePage() {
           ))}
         </div>
 
-        {!recentShorts.length && (
+        {!shortVideos.length && (
           <div className="card">
             <div className="cardbody">
-              <p className="small">
-                No Shorts available yet.
-              </p>
+              <p className="small">No Shorts have been synced yet.</p>
             </div>
           </div>
         )}
@@ -257,8 +217,8 @@ export default async function HomePage() {
       <section className="section">
         <div className="topicHeader">
           <div>
-            <div className="eyebrow">Latest update</div>
-            <h2>Community</h2>
+            <div className="eyebrow">Latest community update</div>
+            <h2>Latest Community Post</h2>
           </div>
 
           <Link className="btn" href="/community">
@@ -266,48 +226,12 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {latestCommunityPost ? (
-          <article className="card communityHomeCard">
-            {latestCommunityPost.image_url && (
-              <div className="communityImageWrap">
-                <Image
-                  src={latestCommunityPost.image_url}
-                  alt="Latest community post"
-                  width={1200}
-                  height={800}
-                  className="communityImage"
-                />
-              </div>
-            )}
-
-            <div className="cardbody">
-              <div className="eyebrow">
-                Recent Community Post
-              </div>
-
-              <p className="communityBody">
-                {latestCommunityPost.body}
-              </p>
-
-              {(latestCommunityPost.published_at ||
-                latestCommunityPost.created_at) && (
-                <div className="videoDate">
-                  Posted{' '}
-                  {formatDate(
-                    latestCommunityPost.published_at ||
-                      latestCommunityPost.created_at
-                  )}
-                </div>
-              )}
-            </div>
-          </article>
+        {latestPost ? (
+          <CommunityPost post={latestPost as any} />
         ) : (
           <div className="card">
             <div className="cardbody">
-              <h3>No community posts yet</h3>
-              <p className="small">
-                New community updates will appear here.
-              </p>
+              <p className="small">No community posts yet.</p>
             </div>
           </div>
         )}

@@ -46,38 +46,3 @@ button { cursor:pointer; }
 @media(max-width:600px){.container{padding:16px;}.grid{grid-template-columns:1fr;}.nav{min-height:auto;align-items:flex-start;flex-direction:column;gap:10px;padding-top:14px;padding-bottom:14px;}.brand{font-size:15px;}.navlinks{width:100%;justify-content:flex-start;gap:8px 12px;font-size:12px;line-height:1.2;}.navlinks a{padding:4px 0;}.hero{padding:40px 0 24px;}.topicHeader{align-items:flex-start;flex-direction:column;gap:8px;}.postImages{grid-template-columns:1fr;}.commentMeta{align-items:flex-start;}.adminComment .small{margin-left:0;width:100%;}.table{display:block;overflow-x:auto;}.btn{margin-right:6px;}}
 
 .routeProgress{position:fixed;top:0;left:0;width:42%;height:2px;background:#3b82f6;z-index:9999;box-shadow:0 0 6px rgba(59,130,246,.45);animation:routeProgressMove 1.4s ease-in-out infinite;}@keyframes routeProgressMove{0%{transform:translateX(-100%) scaleX(.55);transform-origin:left;}50%{transform:translateX(110%) scaleX(1);transform-origin:left;}100%{transform:translateX(300%) scaleX(.6);transform-origin:left;}}
-
-/* Final navigation behavior: primary links stay visible on phones. */
-@media (max-width: 600px) {
-  .nav {
-    min-height: auto;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 12px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-  .brand {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 15px;
-  }
-  .navlinks {
-    display: flex !important;
-    flex: 1 0 100%;
-    width: 100%;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 6px 14px;
-    font-size: 12px;
-    line-height: 1.25;
-    white-space: normal;
-    overflow-x: auto;
-    padding-bottom: 2px;
-  }
-  .navlinks a {
-    flex: 0 0 auto;
-    padding: 4px 0;
-    white-space: nowrap;
-  }
-}

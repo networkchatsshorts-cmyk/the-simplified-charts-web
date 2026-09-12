@@ -1,12 +1,13 @@
-FULL PROJECT PACKAGE
-
-This archive preserves the working admin/API/Supabase/Community/Shorts system.
-The critical paths are intentionally separated:
-  src/app/page.tsx          = HOME PAGE
-  src/app/admin/page.tsx    = ADMIN PAGE
-  src/app/admin/ui.tsx      = ADMIN UI
-  src/app/long-videos/page.tsx = ALL LONG VIDEOS
-  src/app/shorts/page.tsx    = ALL SHORTS
-  src/components/RouteProgress.tsx = thin navigation progress bar
-
-Do not flatten the extracted directory structure when uploading to GitHub.
+Complete project root for The Simplified Charts.
+Upload the CONTENTS of this folder to the ROOT of the existing GitHub repository.
+Do NOT flatten src/app subdirectories.
+Critical routes:
+- src/app/page.tsx = HomePage
+- src/app/admin/page.tsx = AdminPage
+- src/app/admin/ui.tsx = Admin UI
+- src/app/videos/page.tsx = all long videos list
+- src/app/videos/[slug]/page.tsx = individual long/short video page
+- src/app/long-videos/page.tsx = long-videos alias
+- src/app/shorts/page.tsx = all shorts list
+- src/app/community/page.tsx = community list
+This package includes the robust individual-video lookup fix: video is fetched independently from topics so topic relation issues do not turn valid video URLs into 404s.
