@@ -10,9 +10,7 @@ export function getSupabaseAdmin() {
     process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    throw new Error(
-      'Missing Supabase server environment variables.'
-    );
+    throw new Error('Missing Supabase server environment variables.');
   }
 
   return createClient(url, key, {

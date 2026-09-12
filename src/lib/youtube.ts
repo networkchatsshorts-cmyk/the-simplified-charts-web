@@ -35,19 +35,73 @@ function requireKey() {
   return key;
 }
 
-async function youtubeRequest(path: string, params: Record<string, string>) {
+async function youtubeRequest(
+  path: string,
+  params: Record<string, string>
+) {
   const key = requireKey();
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
-  for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
+
+  const url = new URL(
+    `https://www.googleapis.com/youtube/v3/${path}`
+  );
+
+  for (const [name, value] of Object.entries(params)) {
+    url.searchParams.set(name, value);
+  }
+
   url.searchParams.set('key', key);
 
-  const res = await fetch(url, { cache: 'no-store' });
-  const data = await res.json().catch(() => ({}));
+  let res: Response;
+
+  try {
+    res = await fetch(url.toString(), {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error);
+
+    console.error('YouTube network request failed:', {
+      path,
+      message,
+    });
+
+    throw new Error(`YouTube network request failed: ${message}`);
+  }
+
+  const text = await res.text();
+  let data: any = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    console.error('YouTube returned non-JSON response:', {
+      path,
+      status: res.status,
+      responsePreview: text.slice(0, 300),
+    });
+
+    throw new Error(`YouTube returned an invalid response (${res.status}).`);
+  }
+
   if (!res.ok) {
     const reason = data?.error?.errors?.[0]?.reason;
-    const message = data?.error?.message || `YouTube API request failed (${res.status}).`;
+    const message =
+      data?.error?.message ||
+      `YouTube API request failed (${res.status}).`;
+
+    console.error('YouTube API error:', {
+      path,
+      status: res.status,
+      reason,
+      message,
+    });
+
     throw new Error(reason ? `${message} [${reason}]` : message);
   }
+
   return data;
 }
 

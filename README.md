@@ -52,3 +52,9 @@ Then add the site's sitemap to Google Search Console:
 - YouTube Data API playlistItems.list: https://developers.google.com/youtube/v3/docs/playlistItems/list
 - Google VideoObject structured data: https://developers.google.com/search/docs/appearance/structured-data/video
 - YouTube external traffic analytics: https://support.google.com/youtube/answer/9314355
+
+## Automatic playlist sync
+
+Playlist categories are synced against their YouTube playlist ID. A manual sync updates playlist metadata, adds/updates current videos, and archives videos removed from the playlist by setting `published=false` rather than deleting them.
+
+The Vercel Hobby plan supports scheduled cron jobs once per day. This project registers `/api/cron/sync-playlists` for a daily sync. Set a strong `CRON_SECRET` environment variable in Vercel so only the scheduled request can run the endpoint.

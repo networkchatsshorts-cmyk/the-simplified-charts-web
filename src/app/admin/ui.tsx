@@ -43,7 +43,7 @@ export default function AdminClient() {
     });
     const d = await r.json();
     if (!r.ok) return setStatus(d.error || 'Playlist sync failed.');
-    setStatus(`${d.playlist.title} synced. ${d.synced}/${d.found} videos imported${d.skipped ? `, ${d.skipped} skipped.` : '.'}`);
+    setStatus(`${d.playlist.title} synced. ${d.synced}/${d.found} videos imported${d.skipped ? `, ${d.skipped} skipped` : ''}${d.archived ? `, ${d.archived} archived` : ''}.`);
     setPlaylist('');
     await load();
   }
