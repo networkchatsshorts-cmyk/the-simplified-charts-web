@@ -12,7 +12,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const { postId, displayName, body } = await req.json();
-  const name = String(displayName || '').trim(); const text = String(body || '').trim();
+  const name = String(displayName || '').trim();
+  const text = String(body || '').trim();
   if (!postId || !name || !text) return NextResponse.json({ error:'Name, comment and post are required.' }, { status:400 });
   if (name.length > 60 || text.length > 2000) return NextResponse.json({ error:'Comment is too long.' }, { status:400 });
   const db = getSupabaseAdmin();

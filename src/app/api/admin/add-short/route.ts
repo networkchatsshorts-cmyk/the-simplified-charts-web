@@ -39,6 +39,9 @@ export async function POST(req: Request) {
       seo_title: video.title,
       seo_description: video.description?.slice(0, 160),
       published: true,
+      content_type: 'short',
+      classification_locked: true,
+      original_topic_id: null,
     }, { onConflict: 'youtube_video_id' }).select('*').single();
 
     if (error) throw new Error(error.message);

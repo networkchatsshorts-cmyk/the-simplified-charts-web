@@ -27,14 +27,15 @@ export default async function TopicPage({ params }: { params: Promise<{ slug: st
 
   if (!topic) notFound();
 
+  const isShorts = topic.slug === 'shorts';
+
   const { data: videos } = await db
     .from('videos')
     .select('*')
     .eq('topic_id', topic.id)
     .eq('published', true)
+    .eq('content_type', isShorts ? 'short' : 'long')
     .order('published_at', { ascending: false });
-
-  const isShorts = topic.slug === 'shorts';
 
   return (
     <main className="container">

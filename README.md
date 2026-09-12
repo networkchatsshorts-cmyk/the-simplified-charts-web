@@ -58,3 +58,10 @@ Then add the site's sitemap to Google Search Console:
 Playlist categories are synced against their YouTube playlist ID. A manual sync updates playlist metadata, adds/updates current videos, and archives videos removed from the playlist by setting `published=false` rather than deleting them.
 
 The Vercel Hobby plan supports scheduled cron jobs once per day. This project registers `/api/cron/sync-playlists` for a daily sync. Set a strong `CRON_SECRET` environment variable in Vercel so only the scheduled request can run the endpoint.
+
+
+## Shorts and community migration
+
+Run `supabase/migrations/20260912_shorts_community.sql` once in the Supabase SQL Editor on an existing database. It adds automatic long/short classification fields and the admin marker for community replies.
+
+Short classification rule: videos at or below 3 minutes are treated as Shorts unless an admin has manually locked the classification.

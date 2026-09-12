@@ -8,30 +8,13 @@ export const metadata: Metadata = {
   alternates: { canonical: '/community' }
 };
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 120;
 
 export default async function CommunityPage() {
   const db = getSupabaseAdmin();
-  const { data: posts, error } = await db
-    .from('community_posts')
-    .select('id,title,body,image_urls,created_at,youtube_post_url')
-    .eq('published', true)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (error) {
-    throw new Error(`Could not load community posts: ${error.message}`);
-  }
-
+  const { data: posts } = await db.from('community_posts').select('*').eq('published', true).order('created_at', { ascending: false }).limit(50);
   const siteUrl = getSiteUrl();
-  const schema = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: 'The Simplified Charts Community',
-    url: `${siteUrl}/community`,
-    description: 'Community updates, charts and market discussions.'
-  };
+  const schema = { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'The Simplified Charts Community', url: `${siteUrl}/community`, description: 'Community updates, charts and market discussions.' };
 
   return <main className="container">
     <section className="hero">

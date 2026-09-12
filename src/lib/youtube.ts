@@ -105,6 +105,56 @@ async function youtubeRequest(
   return data;
 }
 
+export type YouTubeChannel = {
+  id: string;
+  title: string;
+  uploadsPlaylistId: string;
+};
+
+export async function fetchChannel(channelId: string): Promise<YouTubeChannel> {
+  const data = await youtubeRequest('channels', {
+    part: 'snippet,contentDetails',
+    id: channelId,
+  });
+  const item = data.items?.[0];
+  if (!item) throw new Error('YouTube channel not found or unavailable.');
+  return {
+    id: item.id,
+    title: item.snippet?.title || '',
+    uploadsPlaylistId: item.contentDetails?.relatedPlaylists?.uploads || '',
+  };
+}
+
+export async function fetchVideosByIds(videoIds: string[]): Promise<YouTubeVideo[]> {
+  const out: YouTubeVideo[] = [];
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const batch = videoIds.slice(i, i + 50);
+    if (!batch.length) continue;
+    const data = await youtubeRequest('videos', {
+      part: 'snippet,contentDetails',
+      id: batch.join(','),
+    });
+    for (const item of data.items || []) {
+      const s = item.snippet;
+      const c = item.contentDetails;
+      out.push({
+        id: item.id,
+        title: s.title,
+        description: s.description || '',
+        publishedAt: s.publishedAt,
+        channelId: s.channelId,
+        channelTitle: s.channelTitle,
+        tags: s.tags || [],
+        categoryId: s.categoryId,
+        thumbnailUrl: s.thumbnails?.maxres?.url || s.thumbnails?.high?.url || s.thumbnails?.medium?.url || s.thumbnails?.default?.url || '',
+        durationIso: c.duration,
+        durationSeconds: parseDuration(c.duration),
+      });
+    }
+  }
+  return out;
+}
+
 export function extractVideoId(input: string) {
   try {
     const url = new URL(input.trim());
