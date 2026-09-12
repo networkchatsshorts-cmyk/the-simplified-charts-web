@@ -55,3 +55,9 @@ button { cursor:pointer; }
 .playlistArrow{font-size:12px;color:var(--muted);white-space:nowrap;}
 @media(max-width:850px){.playlistGrid{grid-template-columns:1fr 1fr;}}
 @media(max-width:600px){.playlistGrid{grid-template-columns:1fr;}.playlistCard{min-height:76px;}}
+
+.playlistCta{padding-top:0;border-top:1px solid var(--line);}
+.playlistLink{display:inline-flex;align-items:center;font-size:13px;font-weight:800;line-height:1.4;}
+.playlistLink:hover{text-decoration:underline;}
+
+.videoDate { margin-top: 8px; color: #6b7280; font-size: 0.86rem; }

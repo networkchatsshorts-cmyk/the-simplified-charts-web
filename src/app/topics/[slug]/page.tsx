@@ -6,6 +6,15 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
+const formatDate = (value: string | null | undefined) =>
+  value
+    ? new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(value))
+    : '';
+
 export default async function TopicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const db = getSupabaseAdmin();
@@ -62,6 +71,9 @@ export default async function TopicPage({ params }: { params: Promise<{ slug: st
               <div className="cardbody">
                 <h3>{v.title}</h3>
                 <p className="small">{v.seo_description || v.description?.slice(0, 150)}</p>
+                {v.published_at && (
+                  <div className="videoDate">Uploaded {formatDate(v.published_at)}</div>
+                )}
               </div>
             </Link>
           ))}

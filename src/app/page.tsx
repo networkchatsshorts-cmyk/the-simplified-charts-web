@@ -5,6 +5,15 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
+const formatDate = (value: string | null | undefined) =>
+  value
+    ? new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(value))
+    : '';
+
 export default async function HomePage() {
   const db = getSupabaseAdmin();
 
@@ -111,26 +120,36 @@ export default async function HomePage() {
             const video = latestByTopic.get(topic.id);
             if (!video) return null;
             return (
-              <Link className="card" href={`/videos/${video.slug}`} key={topic.id}>
-                {video.thumbnail_url && (
-                  <div className="thumbWrap">
-                    <Image
-                      className="thumb"
-                      src={video.thumbnail_url}
-                      alt={video.title}
-                      width={640}
-                      height={360}
-                    />
+              <article className="card" key={topic.id}>
+                <Link href={`/videos/${video.slug}`}>
+                  {video.thumbnail_url && (
+                    <div className="thumbWrap">
+                      <Image
+                        className="thumb"
+                        src={video.thumbnail_url}
+                        alt={video.title}
+                        width={640}
+                        height={360}
+                      />
+                    </div>
+                  )}
+                  <div className="cardbody">
+                    <div className="eyebrow">{topic.name}</div>
+                    <h3>{video.title}</h3>
+                    <p className="small">
+                      {video.seo_description || 'Latest analysis from this playlist.'}
+                    </p>
+                    {video.published_at && (
+                      <div className="videoDate">Uploaded {formatDate(video.published_at)}</div>
+                    )}
                   </div>
-                )}
-                <div className="cardbody">
-                  <div className="eyebrow">{topic.name}</div>
-                  <h3>{video.title}</h3>
-                  <p className="small">
-                    {video.seo_description || 'Latest analysis from this playlist.'}
-                  </p>
+                </Link>
+                <div className="cardbody playlistCta">
+                  <Link className="playlistLink" href={`/topics/${topic.slug}`}>
+                    To check all videos, open the playlist →
+                  </Link>
                 </div>
-              </Link>
+              </article>
             );
           })}
         </div>
@@ -162,6 +181,9 @@ export default async function HomePage() {
               <div className="cardbody">
                 <h3>{video.title}</h3>
                 <p className="small">{video.seo_description || 'Short-form market analysis.'}</p>
+                {video.published_at && (
+                  <div className="videoDate">Uploaded {formatDate(video.published_at)}</div>
+                )}
               </div>
             </Link>
           ))}

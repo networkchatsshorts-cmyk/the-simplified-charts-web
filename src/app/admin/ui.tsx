@@ -48,6 +48,25 @@ export default function AdminClient() {
     await load();
   }
 
+  async function syncAllPlaylists() {
+    setStatus('Syncing every saved YouTube playlist. Please wait...');
+    const r = await fetch('/api/admin/sync-all-playlists', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+    });
+    const d = await r.json();
+    if (!r.ok) return setStatus(d.error || 'Sync all playlists failed.');
+
+    const successes = (d.results || []).filter((x: any) => x.ok);
+    const failures = (d.results || []).filter((x: any) => !x.ok);
+    const imported = successes.reduce((sum: number, x: any) => sum + (x.summary?.synced || 0), 0);
+    const archived = successes.reduce((sum: number, x: any) => sum + (x.summary?.archived || 0), 0);
+    setStatus(
+      `All playlists synced. ${successes.length} succeeded${failures.length ? `, ${failures.length} failed` : ''}. ${imported} videos updated/imported${archived ? `, ${archived} archived` : ''}.`
+    );
+    await load();
+  }
+
   async function addShort() {
     if (!shortUrl.trim()) return setStatus('Paste a YouTube Short URL first.');
     setStatus('Fetching Short...');
@@ -100,6 +119,13 @@ export default function AdminClient() {
         <label>Playlist URL</label>
         <input value={playlist} onChange={e => setPlaylist(e.target.value)} placeholder="https://www.youtube.com/playlist?list=..." />
         <button className="btn primary" onClick={syncPlaylist}>Sync Playlist</button>
+      </div></div>
+
+      <div className="card" style={{ marginTop: 18 }}><div className="cardbody">
+        <div className="eyebrow">One-click maintenance</div>
+        <h3>Sync All Playlists</h3>
+        <p className="small">Refresh every saved playlist at once. New videos are added, changed metadata is updated, and videos no longer in a playlist are archived from the site.</p>
+        <button className="btn" onClick={syncAllPlaylists}>Sync All Playlists</button>
       </div></div>
 
       <div className="card" style={{ marginTop: 18 }}><div className="cardbody">

@@ -51,6 +51,9 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
       <div className="eyebrow">{v.topics?.name || 'Stock Market Analysis'}</div>
       <h1>{v.title}</h1>
       <p className="lead">{v.seo_description || v.description?.slice(0, 300)}</p>
+      {v.published_at && (
+        <div className="videoDate">Uploaded {new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(v.published_at))}</div>
+      )}
       <div className="videoWrap"><iframe src={youtubeEmbedUrl(v.youtube_video_id)} title={v.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /></div>
       <div><a className="btn primary" href={v.youtube_url} target="_blank" rel="noreferrer">Watch on YouTube ↗</a>{v.topics && <Link className="btn" href={`/topics/${v.topics.slug}`}>More {v.topics.name} Analysis</Link>}</div>
     </section>
