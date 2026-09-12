@@ -1,0 +1,12 @@
+FULL PROJECT PACKAGE
+
+This archive preserves the working admin/API/Supabase/Community/Shorts system.
+The critical paths are intentionally separated:
+  src/app/page.tsx          = HOME PAGE
+  src/app/admin/page.tsx    = ADMIN PAGE
+  src/app/admin/ui.tsx      = ADMIN UI
+  src/app/long-videos/page.tsx = ALL LONG VIDEOS
+  src/app/shorts/page.tsx    = ALL SHORTS
+  src/components/RouteProgress.tsx = thin navigation progress bar
+
+Do not flatten the extracted directory structure when uploading to GitHub.
