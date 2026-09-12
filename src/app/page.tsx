@@ -83,33 +83,6 @@ export default async function HomePage() {
       <section className="section">
         <div className="topicHeader">
           <div>
-            <div className="eyebrow">Browse research</div>
-            <h2>Stock Playlists</h2>
-          </div>
-          <span className="small">Select a playlist to see its full analysis</span>
-        </div>
-
-        <div className="playlistGrid">
-          {playlistTopics.map((topic) => (
-            <Link className="playlistCard" href={`/topics/${topic.slug}`} key={topic.id}>
-              <h3>{topic.name}</h3>
-              <span className="playlistArrow">View analysis →</span>
-            </Link>
-          ))}
-        </div>
-
-        {!playlistTopics.length && (
-          <div className="card">
-            <div className="cardbody">
-              <p className="small">Add a YouTube playlist from the Admin area to create its section here.</p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="section">
-        <div className="topicHeader">
-          <div>
             <div className="eyebrow">Latest from each playlist</div>
             <h2>Recent Analysis</h2>
           </div>
@@ -120,7 +93,7 @@ export default async function HomePage() {
             const video = latestByTopic.get(topic.id);
             if (!video) return null;
             return (
-              <article className="card" key={topic.id}>
+              <article className="card latestCard" key={topic.id}>
                 <Link href={`/videos/${video.slug}`}>
                   {video.thumbnail_url && (
                     <div className="thumbWrap">
@@ -144,9 +117,9 @@ export default async function HomePage() {
                     )}
                   </div>
                 </Link>
-                <div className="cardbody playlistCta">
+                <div className="playlistCta">
                   <Link className="playlistLink" href={`/topics/${topic.slug}`}>
-                    To check all videos, open the playlist →
+                    Explore all videos from this playlist <span aria-hidden="true">→</span>
                   </Link>
                 </div>
               </article>

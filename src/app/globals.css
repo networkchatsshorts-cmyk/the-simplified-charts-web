@@ -48,16 +48,15 @@ button { cursor:pointer; }
 .comment p{margin:8px 0 0;line-height:1.6;white-space:pre-wrap;}
 @media(max-width:600px){.postImages{grid-template-columns:1fr;}}
 
-.playlistGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
-.playlistCard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:92px;transition:transform .15s ease,border-color .15s ease;}
-.playlistCard:hover{transform:translateY(-2px);border-color:#b8bec5;}
-.playlistCard h3{margin:0;font-size:18px;line-height:1.25;}
 .playlistArrow{font-size:12px;color:var(--muted);white-space:nowrap;}
-@media(max-width:850px){.playlistGrid{grid-template-columns:1fr 1fr;}}
-@media(max-width:600px){.playlistGrid{grid-template-columns:1fr;}.playlistCard{min-height:76px;}}
 
-.playlistCta{padding-top:0;border-top:1px solid var(--line);}
-.playlistLink{display:inline-flex;align-items:center;font-size:13px;font-weight:800;line-height:1.4;}
-.playlistLink:hover{text-decoration:underline;}
+
+.latestCard{display:flex;flex-direction:column;height:100%;}
+.latestCard > a{display:block;}
+.playlistCta{margin-top:auto;min-height:58px;padding:0 18px;border-top:1px solid var(--line);background:#fafbfc;display:flex;align-items:center;}
+.playlistLink{display:inline-flex;align-items:center;justify-content:space-between;width:100%;gap:12px;font-size:13px;font-weight:800;line-height:1.4;color:#17202a;transition:transform .15s ease,color .15s ease;}
+.playlistLink span{font-size:17px;line-height:1;transition:transform .15s ease;}
+.playlistLink:hover{color:#111827;}
+.playlistLink:hover span{transform:translateX(3px);}
 
 .videoDate { margin-top: 8px; color: #6b7280; font-size: 0.86rem; }
