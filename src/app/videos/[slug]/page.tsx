@@ -1,4 +1,253 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import {
+  getSupabaseAdmin,
+  getSiteUrl,
+} from '@/lib/supabase';
+import { youtubeEmbedUrl } from '@/lib/youtube';
+
+export const dynamic = 'force-dynamic';
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return '';
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+async function getVideo(slug: string) {
+  const db = getSupabaseAdmin();
+
+  // Fetch the video independently so a topic/relation issue
+  // cannot cause the whole video page to 404.
+  const { data: video, error } = await db
+    .from('videos')
+    .select('*')
+    .eq('slug', slug)
+    .eq('published', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Video lookup error:', error);
+    return null;
+  }
+
+  if (!video) {
+    return null;
+  }
+
+  let topic = null;
+
+  if (video.topic_id) {
+    const { data: topicData, error: topicError } = await db
+      .from('topics')
+      .select('id,name,slug,description,youtube_playlist_id')
+      .eq('id', video.topic_id)
+      .maybeSingle();
+
+    if (topicError) {
+      console.error('Topic lookup error:', topicError);
+    } else {
+      topic = topicData;
+    }
+  }
+
+  return {
+    ...video,
+    topic,
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const v = await getVideo(slug);
+
+  if (!v) {
+    return {};
+  }
+
+  const description =
+    v.seo_description ||
+    v.description?.slice(0, 160) ||
+    v.title;
+
+  return {
+    title: v.seo_title || v.title,
+    description,
+    alternates: {
+      canonical: `/videos/${v.slug}`,
+    },
+    openGraph: {
+      title: v.seo_title || v.title,
+      description,
+      type: 'video.other',
+      images: v.thumbnail_url
+        ? [v.thumbnail_url]
+        : [],
+    },
+  };
+}
+
+export default async function VideoPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  const v = await getVideo(slug);
+
+  if (!v) {
+    notFound();
+  }
+
+  const siteUrl = getSiteUrl();
+  const pageUrl = `${siteUrl}/videos/${v.slug}`;
+  const embedUrl = youtubeEmbedUrl(
+    v.youtube_video_id
+  );
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: v.title,
+    description:
+      v.seo_description ||
+      v.description ||
+      v.title,
+    thumbnailUrl: v.thumbnail_url
+      ? [v.thumbnail_url]
+      : [],
+    uploadDate: v.published_at,
+    duration: v.duration_iso || undefined,
+    contentUrl: v.youtube_url,
+    embedUrl,
+    url: pageUrl,
+    publisher: {
+      '@type': 'Organization',
+      name: 'The Simplified Charts',
+      url: siteUrl,
+    },
+  };
+
+  return (
+    <main className="container">
+      <section className="section">
+        <div className="eyebrow">
+          {v.topic?.name ||
+            'Stock Market Analysis'}
+        </div>
+
+        <h1>{v.title}</h1>
+
+        <p className="lead">
+          {v.seo_description ||
+            v.description?.slice(0, 300) ||
+            'Stock market analysis from The Simplified Charts.'}
+        </p>
+
+        {v.published_at && (
+          <div className="videoDate">
+            Uploaded {formatDate(v.published_at)}
+          </div>
+        )}
+
+        <div className="videoWrap">
+          <iframe
+            src={embedUrl}
+            title={v.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <a
+            className="btn primary"
+            href={v.youtube_url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Watch on YouTube ↗
+          </a>
+
+          {v.topic?.slug && (
+            <Link
+              className="btn"
+              href={`/topics/${v.topic.slug}`}
+            >
+              More {v.topic.name} Analysis
+            </Link>
+          )}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="eyebrow">
+          Analysis
+        </div>
+
+        <h2>What this video covers</h2>
+
+        <div className="prose">
+          {v.analysis_intro ||
+            v.description ||
+            'Analysis details for this video.'}
+        </div>
+
+        {!!v.key_points?.length && (
+          <>
+            <h3>Key points</h3>
+
+            <ul>
+              {v.key_points.map(
+                (point: string) => (
+                  <li key={point}>
+                    {point}
+                  </li>
+                )
+              )}
+            </ul>
+          </>
+        )}
+      </section>
+
+      <section className="section">
+        <div className="eyebrow">
+          Original source
+        </div>
+
+        <p className="small">
+          This page is the companion page for
+          the original YouTube video. The video
+          remains hosted on YouTube.
+        </p>
+      </section>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(schema),
+        }}
+      />
+    </main>
+  );
+}import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
