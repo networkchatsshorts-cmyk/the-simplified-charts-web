@@ -14,7 +14,8 @@ export default async function HomePage() {
     <section className="hero">
       <div className="eyebrow">The Simplified Charts</div>
       <h1>Stock Market Analysis in Hindi</h1>
-      <p className="lead">Practical chart analysis focused on breakouts, support zones, price action and clear buy-or-sell frameworks. Explore each stock category and watch the original YouTube analysis.</p>
+      <p className="lead">We Don't Just Read Candles. We Score Them.
+Multiple technical parameters drive a structured candle score, which helps identify three key zones: HOLD, CAUTION, and STRUCTURE BREAKDOWN.</p>
       <a className="btn primary" href={process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#'} target="_blank" rel="noreferrer">Visit YouTube Channel ↗</a>
     </section>
 
