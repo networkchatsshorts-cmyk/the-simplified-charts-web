@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 type Topic = { id: string; name: string; slug: string; description: string | null; youtube_playlist_id: string | null; youtube_playlist_url: string | null };
 type Video = { id: string; title: string; youtube_video_id: string; slug: string; published_at: string | null; topic_id: string | null };
 type Post = { id: string; title: string; body: string; published: boolean; created_at: string };
-type Comment = { id: string; display_name: string; body: string; published: boolean; created_at: string; post_id: string };
+type Comment = { id: string; display_name: string; body: string; published: boolean; created_at: string; post_id: string; is_admin?: boolean };
 
 export default function AdminClient() {
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -20,6 +20,7 @@ export default function AdminClient() {
   const [postYoutubeUrl, setPostYoutubeUrl] = useState('');
   const [postPublished, setPostPublished] = useState(true);
   const [status, setStatus] = useState('');
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
 
   async function load() {
     const r = await fetch('/api/admin/data', { cache: 'no-store' });
@@ -102,8 +103,31 @@ export default function AdminClient() {
     if (r.ok) await load();
   }
 
-  async function toggleComment(id: string, published: boolean) {
-    const r = await fetch(`/api/admin/comments/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ published }) });
+  async function deleteComment(id: string) {
+    if (!window.confirm('Permanently delete this comment?')) return;
+    const r = await fetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    setStatus(r.ok ? 'Comment deleted permanently.' : (d.error || 'Could not delete comment.'));
+    if (r.ok) await load();
+  }
+
+  async function replyAsAdmin(postId: string) {
+    const text = (replyDrafts[postId] || '').trim();
+    if (!text) return setStatus('Write an admin reply first.');
+    const r = await fetch('/api/admin/comments', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ postId, body: text }) });
+    const d = await r.json();
+    setStatus(r.ok ? 'Admin reply posted.' : (d.error || 'Could not post reply.'));
+    if (r.ok) {
+      setReplyDrafts(prev => ({ ...prev, [postId]: '' }));
+      await load();
+    }
+  }
+
+  async function deletePost(id: string) {
+    if (!window.confirm('Permanently delete this community post and its comments/images?')) return;
+    const r = await fetch(`/api/admin/posts/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    setStatus(r.ok ? 'Community post deleted permanently.' : (d.error || 'Could not delete post.'));
     if (r.ok) await load();
   }
 
@@ -153,9 +177,9 @@ export default function AdminClient() {
 
     <section className="section"><h2>Community post</h2><p className="small">Create a post like a YouTube Community post, add multiple images, publish/unpublish it, and let visitors comment.</p><label>Title</label><input value={postTitle} onChange={e=>setPostTitle(e.target.value)} placeholder="Market update / chart / question"/><label>Post text</label><textarea value={postBody} onChange={e=>setPostBody(e.target.value)} placeholder="Write your community post..."/><label>Images (multiple allowed)</label><input type="file" accept="image/*" multiple onChange={e=>setPostImages(e.target.files)}/><label>Optional YouTube post URL</label><input value={postYoutubeUrl} onChange={e=>setPostYoutubeUrl(e.target.value)} placeholder="https://www.youtube.com/post/..."/><label><input type="checkbox" checked={postPublished} onChange={e=>setPostPublished(e.target.checked)} style={{width:'auto',marginRight:8}}/> Published</label><button className="btn primary" onClick={createPost}>Publish community post</button></section>
 
-    <section className="section"><h2>Community posts</h2><table className="table"><thead><tr><th>Post</th><th>Status</th><th>Action</th></tr></thead><tbody>{posts.map(p=><tr key={p.id}><td><strong>{p.title}</strong><div className="small">{p.created_at.slice(0,16).replace('T',' ')}</div></td><td>{p.published?'Published':'Hidden'}</td><td><button className="btn" onClick={()=>togglePost(p.id,!p.published)}>{p.published?'Hide / Revert':'Restore / Publish'}</button></td></tr>)}</tbody></table></section>
+    <section className="section"><h2>Community posts</h2><div className="communityAdminList">{posts.map(p=><div className="card adminPostCard" key={p.id}><div className="cardbody"><div className="topicHeader"><div><h3>{p.title}</h3><div className="small">{p.created_at.slice(0,16).replace('T',' ')}</div></div><span className="pill">{p.published?'Published':'Hidden'}</span></div><div className="adminReplyBox"><label>Reply as Admin</label><textarea value={replyDrafts[p.id] || ''} onChange={e=>setReplyDrafts(prev=>({...prev,[p.id]:e.target.value}))} placeholder="Write an official reply..." maxLength={2000} /><button className="btn primary" onClick={()=>replyAsAdmin(p.id)}>Post admin reply</button></div><button className="btn danger" onClick={()=>deletePost(p.id)}>Delete permanently</button></div></div>)}</div></section>
 
-    <section className="section"><h2>Comment moderation</h2><p className="small">Hide an unwanted comment or restore it later. Hidden comments are not shown publicly.</p><table className="table"><thead><tr><th>Comment</th><th>Status</th><th>Action</th></tr></thead><tbody>{comments.map(c=><tr key={c.id}><td><strong>{c.display_name}</strong><div className="small">{c.body}</div><div className="small">{c.created_at.slice(0,16).replace('T',' ')}</div></td><td>{c.published?'Visible':'Hidden'}</td><td><button className="btn" onClick={()=>toggleComment(c.id,!c.published)}>{c.published?'Hide / Revert':'Restore'}</button></td></tr>)}</tbody></table></section>
+    <section className="section"><h2>Comment moderation</h2><p className="small">Review all comments and permanently remove anything you do not want to keep.</p><table className="table"><thead><tr><th>Comment</th><th>Status</th><th>Action</th></tr></thead><tbody>{comments.map(c=><tr key={c.id}><td><strong>{c.is_admin?'The Simplified Charts':c.display_name}</strong>{c.is_admin && <span className="adminBadge tableBadge">ADMIN</span>}<div className="small">{c.body}</div><div className="small">{c.created_at.slice(0,16).replace('T',' ')}</div></td><td>{c.published?'Visible':'Hidden'}</td><td><button className="btn danger" onClick={()=>deleteComment(c.id)}>Delete permanently</button></td></tr>)}</tbody></table></section>
 
     <section className="section"><h2>Current videos</h2><table className="table"><thead><tr><th>Title</th><th>Published</th><th>URL</th></tr></thead><tbody>{videos.map(v=><tr key={v.id}><td>{v.title}</td><td>{v.published_at?.slice(0,10)}</td><td><a href={`/videos/${v.slug}`} target="_blank" rel="noreferrer">Open ↗</a></td></tr>)}</tbody></table></section>
 

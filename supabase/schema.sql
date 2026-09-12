@@ -52,7 +52,8 @@ create table if not exists public.community_comments (
   display_name text not null,
   body text not null,
   published boolean not null default true,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  is_admin boolean not null default false
 );
 
 create index if not exists videos_topic_id_idx on public.videos(topic_id);
@@ -69,7 +70,9 @@ create policy "public can read topics" on public.topics for select using (true);
 create policy "public can read published videos" on public.videos for select using (published = true);
 create policy "public can read published posts" on public.community_posts for select using (published = true);
 create policy "public can read published comments" on public.community_comments for select using (published = true);
-create policy "public can add comments" on public.community_comments for insert with check (length(trim(display_name)) between 1 and 60 and length(trim(body)) between 1 and 2000);
+drop policy if exists "public can add comments" on public.community_comments;
+drop policy if exists "public can add non-admin comments" on public.community_comments;
+create policy "public can add comments" on public.community_comments for insert with check (is_admin = false and length(trim(display_name)) between 1 and 60 and length(trim(body)) between 1 and 2000);
 
 insert into storage.buckets (id, name, public)
 values ('community-images', 'community-images', true)
@@ -91,3 +94,8 @@ for each row execute function public.set_updated_at();
 drop trigger if exists community_posts_updated_at on public.community_posts;
 create trigger community_posts_updated_at before update on public.community_posts
 for each row execute function public.set_updated_at();
+
+
+-- Existing deployments: add the admin-role marker for comments.
+alter table public.community_comments add column if not exists is_admin boolean not null default false;
+
