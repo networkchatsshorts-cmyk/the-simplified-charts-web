@@ -1,4 +1,4 @@
-\import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from 'next';
 import { getSiteUrl } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
