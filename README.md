@@ -6,7 +6,7 @@ SEO-first companion site for The Simplified Charts YouTube channel.
 
 - Next.js App Router: server-rendered pages and strong metadata/SEO control.
 - Supabase: videos, stock/topic categories, and website content.
-- YouTube Data API v3: fetch video metadata and sync YouTube playlist.
+- YouTube Data API v3: fetch video metadata and sync YouTube playlists.
 - GitHub: source control and deployment workflow.
 
 Google's current guidance says `VideoObject` structured data on watch pages can make videos easier to find and can help them appear in Search, Video mode, Images and Discover. Google also recommends sitemap submission and validation/inspection after publishing. See the official docs linked below.
@@ -32,6 +32,11 @@ Open `http://localhost:3000/admin/login` and use `ADMIN_PASSWORD`.
 2. Paste a YouTube playlist URL to sync its videos into a category.
 3. Open a video from the admin list.
 4. For important videos, add original `Analysis intro`, `Key points`, and a strong `SEO description` instead of only copying the YouTube description.
+5. Use the Community section in Admin to publish posts with multiple images, hide/restore posts, and moderate/hide/restore comments.
+
+## Community
+
+The public `/community` page lists published community posts. Visitors can open comments and post a display name + comment. Admins can publish/unpublish posts, upload multiple images per post to the Supabase `community-images` bucket, and hide/restore comments.
 
 ## Production
 

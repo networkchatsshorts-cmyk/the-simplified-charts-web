@@ -20,10 +20,35 @@ export type YouTubePlaylistItem = {
   thumbnailUrl: string;
 };
 
+export type YouTubePlaylist = {
+  id: string;
+  title: string;
+  description: string;
+  channelId: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+};
+
 function requireKey() {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) throw new Error('Missing YOUTUBE_API_KEY.');
   return key;
+}
+
+async function youtubeRequest(path: string, params: Record<string, string>) {
+  const key = requireKey();
+  const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
+  for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
+  url.searchParams.set('key', key);
+
+  const res = await fetch(url, { cache: 'no-store' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const reason = data?.error?.errors?.[0]?.reason;
+    const message = data?.error?.message || `YouTube API request failed (${res.status}).`;
+    throw new Error(reason ? `${message} [${reason}]` : message);
+  }
+  return data;
 }
 
 export function extractVideoId(input: string) {
@@ -46,13 +71,10 @@ function parseDuration(iso: string) {
 }
 
 export async function fetchVideo(videoId: string): Promise<YouTubeVideo> {
-  const key = requireKey();
-  const url = new URL('https://www.googleapis.com/youtube/v3/videos');
-  url.searchParams.set('part', 'snippet,contentDetails');
-  url.searchParams.set('id', videoId);
-  url.searchParams.set('key', key);
-  const res = await fetch(url, { next: { revalidate: 300 } });
-  const data = await res.json();
+  const data = await youtubeRequest('videos', {
+    part: 'snippet,contentDetails',
+    id: videoId,
+  });
   const item = data.items?.[0];
   if (!item) throw new Error('YouTube video not found or is unavailable.');
   const s = item.snippet;
@@ -66,26 +88,40 @@ export async function fetchVideo(videoId: string): Promise<YouTubeVideo> {
     channelTitle: s.channelTitle,
     tags: s.tags || [],
     categoryId: s.categoryId,
-    thumbnailUrl: s.thumbnails?.maxres?.url || s.thumbnails?.high?.url || s.thumbnails?.medium?.url,
+    thumbnailUrl: s.thumbnails?.maxres?.url || s.thumbnails?.high?.url || s.thumbnails?.medium?.url || s.thumbnails?.default?.url || '',
     durationIso: c.duration,
-    durationSeconds: parseDuration(c.duration)
+    durationSeconds: parseDuration(c.duration),
   };
 }
 
-export async function fetchPlaylistItems(playlistId: string, maxPages = 10): Promise<YouTubePlaylistItem[]> {
-  const key = requireKey();
+export async function fetchPlaylist(playlistId: string): Promise<YouTubePlaylist> {
+  const data = await youtubeRequest('playlists', {
+    part: 'snippet',
+    id: playlistId,
+  });
+  const item = data.items?.[0];
+  if (!item) throw new Error('YouTube playlist not found, private, or unavailable.');
+  const s = item.snippet;
+  return {
+    id: item.id,
+    title: s.title || 'Untitled Playlist',
+    description: s.description || '',
+    channelId: s.channelId || '',
+    channelTitle: s.channelTitle || '',
+    thumbnailUrl: s.thumbnails?.high?.url || s.thumbnails?.medium?.url || s.thumbnails?.default?.url || '',
+  };
+}
+
+export async function fetchPlaylistItems(playlistId: string, maxPages = 20): Promise<YouTubePlaylistItem[]> {
   const out: YouTubePlaylistItem[] = [];
   let pageToken = '';
   for (let page = 0; page < maxPages; page++) {
-    const url = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
-    url.searchParams.set('part', 'snippet,contentDetails');
-    url.searchParams.set('playlistId', playlistId);
-    url.searchParams.set('maxResults', '50');
-    url.searchParams.set('key', key);
-    if (pageToken) url.searchParams.set('pageToken', pageToken);
-    const res = await fetch(url, { cache: 'no-store' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to fetch playlist.');
+    const data = await youtubeRequest('playlistItems', {
+      part: 'snippet,contentDetails',
+      playlistId,
+      maxResults: '50',
+      ...(pageToken ? { pageToken } : {}),
+    });
     for (const item of data.items || []) {
       const videoId = item.contentDetails?.videoId;
       if (!videoId) continue;
@@ -94,7 +130,7 @@ export async function fetchPlaylistItems(playlistId: string, maxPages = 10): Pro
         title: item.snippet?.title || '',
         description: item.snippet?.description || '',
         publishedAt: item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt,
-        thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url
+        thumbnailUrl: item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url || '',
       });
     }
     pageToken = data.nextPageToken || '';

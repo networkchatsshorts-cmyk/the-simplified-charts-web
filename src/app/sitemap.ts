@@ -1,82 +1,18 @@
 import type { MetadataRoute } from 'next';
-import { getSiteUrl } from '@/lib/supabase';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 300;
+import { getSupabaseAdmin, getSiteUrl } from '@/lib/supabase';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const db = getSupabaseAdmin();
+  const [{ data: topics }, { data: videos }, { data: posts }] = await Promise.all([
+    db.from('topics').select('slug'),
+    db.from('videos').select('slug,updated_at').eq('published', true),
+    db.from('community_posts').select('id,updated_at').eq('published', true)
+  ]);
   const base = getSiteUrl();
-
-  const urls: MetadataRoute.Sitemap = [
-    {
-      url: base,
-      lastModified: new Date(),
-    },
+  return [
+    { url: base, lastModified: new Date() },
+    { url: `${base}/community`, lastModified: new Date() },
+    ...(topics || []).map(t => ({ url: `${base}/topics/${t.slug}`, lastModified: new Date() })),
+    ...(videos || []).map(v => ({ url: `${base}/videos/${v.slug}`, lastModified: new Date(v.updated_at) }))
   ];
-
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  // Keep the build alive even if Supabase server env vars
-  // are temporarily unavailable.
-  if (!supabaseUrl || !serviceKey) {
-    return urls;
-  }
-
-  try {
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/videos?select=slug,updated_at&published=eq.true`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        next: {
-          revalidate: 300,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return urls;
-    }
-
-    const videos = await response.json();
-
-    for (const video of videos || []) {
-      urls.push({
-        url: `${base}/videos/${video.slug}`,
-        lastModified: new Date(video.updated_at),
-      });
-    }
-
-    const topicResponse = await fetch(
-      `${supabaseUrl}/rest/v1/topics?select=slug`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        next: {
-          revalidate: 300,
-        },
-      }
-    );
-
-    if (topicResponse.ok) {
-      const topics = await topicResponse.json();
-
-      for (const topic of topics || []) {
-        urls.push({
-          url: `${base}/topics/${topic.slug}`,
-          lastModified: new Date(),
-        });
-      }
-    }
-  } catch {
-    // Return at least the homepage if Supabase is unavailable.
-    return urls;
-  }
-
-  return urls;
 }

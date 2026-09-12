@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return <html lang="en"><body>
     <header className="header"><div className="container nav">
       <Link className="brand" href="/">The Simplified Charts</Link>
-      <nav className="navlinks"><Link href="/">Home</Link><a href={process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#'} target="_blank" rel="noreferrer">YouTube</a></nav>
+      <nav className="navlinks"><Link href="/">Home</Link><Link href="/community">Community</Link><a href={process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#'} target="_blank" rel="noreferrer">YouTube</a></nav>
     </div></header>
     {children}
     <footer className="footer"><div className="container">© {new Date().getFullYear()} The Simplified Charts. Stock market analysis in Hindi.</div></footer>
