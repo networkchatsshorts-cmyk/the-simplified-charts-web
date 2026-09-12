@@ -15,7 +15,8 @@ h2 { letter-spacing:-.03em; }
 .grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:18px; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:18px; overflow:hidden; }
 .cardbody { padding:18px; }
-.thumb { width:100%; aspect-ratio:16/9; object-fit:cover; background:#ddd; display:block; }
+.thumbWrap { width:100%; aspect-ratio:16/9; background:#ddd; overflow:hidden; display:block; position:relative; }
+.thumb { width:100%; height:100%; object-fit:contain; display:block; }
 .small { color:var(--muted); font-size:13px; line-height:1.5; }
 .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#eef0f3; font-size:12px; margin-right:6px; }
 .videoWrap { background:#000; border-radius:18px; overflow:hidden; aspect-ratio:16/9; }

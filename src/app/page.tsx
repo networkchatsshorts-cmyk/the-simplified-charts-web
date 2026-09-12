@@ -24,7 +24,17 @@ export default async function HomePage() {
 
     <section className="section"><div className="topicHeader"><div><div className="eyebrow">Latest</div><h2>Recent Videos</h2></div></div>
       <div className="grid">{(videos || []).map((v: any) => <Link className="card" href={`/videos/${v.slug}`} key={v.id}>
-        {v.thumbnail_url && <Image className="thumb" src={v.thumbnail_url} alt={v.title} width={640} height={360} />}
+        {v.thumbnail_url && (
+                <div className="thumbWrap">
+                  <Image
+                    className="thumb"
+                    src={v.thumbnail_url}
+                    alt={v.title}
+                    width={640}
+                    height={360}
+                  />
+                </div>
+              )}
         <div className="cardbody"><h3>{v.title}</h3><p className="small">{v.seo_description || v.description?.slice(0, 150)}</p></div>
       </Link>)}</div>
     </section>
