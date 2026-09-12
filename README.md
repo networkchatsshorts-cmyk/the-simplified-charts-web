@@ -6,7 +6,7 @@ SEO-first companion site for The Simplified Charts YouTube channel.
 
 - Next.js App Router: server-rendered pages and strong metadata/SEO control.
 - Supabase: videos, stock/topic categories, and website content.
-- YouTube Data API v3: fetch video metadata and sync YouTube playlists.
+- YouTube Data API v3: fetch video metadata and sync YouTube playlist.
 - GitHub: source control and deployment workflow.
 
 Google's current guidance says `VideoObject` structured data on watch pages can make videos easier to find and can help them appear in Search, Video mode, Images and Discover. Google also recommends sitemap submission and validation/inspection after publishing. See the official docs linked below.
