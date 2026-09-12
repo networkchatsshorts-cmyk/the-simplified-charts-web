@@ -80,6 +80,10 @@ export default async function HomePage() {
           We Don't Just Read Candles. We Score Them. Multiple technical
           parameters drive a structured candle score, which helps identify
           three key zones: HOLD, CAUTION, and STRUCTURE BREAKDOWN.
+        
+          I am not SEBI registered. I am a learner with three years of
+          experience in the stock market, sharing my knowledge and
+          learnings with friends for educational purposes only.
         </p>
 
         <a
