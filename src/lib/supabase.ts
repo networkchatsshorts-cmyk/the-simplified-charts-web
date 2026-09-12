@@ -1,11 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 export function getSupabaseAdmin() {
-  const url = process.env.SUPABASE_URL;
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL;
 
-  // Prefer Supabase's current server-side secret key.
-  // Fall back to the legacy service-role key so existing setup
-  // keeps working during the transition.
   const key =
     process.env.SUPABASE_SECRET_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY;
