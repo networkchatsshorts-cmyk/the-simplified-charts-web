@@ -1513,3 +1513,10 @@ textarea {
     transform-origin: left;
   }
 }
+
+/* Compact premium header */
+.header > .container.nav {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  min-height: 56px;
+}
