@@ -5,8 +5,10 @@ import { getSiteUrl } from '@/lib/supabase';
 import RouteProgress from '@/components/RouteProgress';
 import { Analytics } from '@vercel/analytics/next';
 
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
+  metadataBase: new URL(siteUrl),
 
   title: {
     default: 'The Simplified Charts | Scored Candle Stock Analysis',
@@ -24,6 +26,14 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'The Simplified Charts',
+  alternateName: 'The Simplified Charts',
+  url: siteUrl,
 };
 
 export default function RootLayout({
@@ -76,11 +86,20 @@ export default function RootLayout({
         <footer className="footer">
           <div className="container">
             © {new Date().getFullYear()} The Simplified Charts.
-            Scored candle analysis for simpler, clearer stock-market learning.
+            Scored candle analysis for simpler, clearer stock-market
+            learning.
           </div>
         </footer>
 
         <Analytics />
+
+        {/* Homepage/site identity structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteSchema),
+          }}
+        />
       </body>
     </html>
   );
