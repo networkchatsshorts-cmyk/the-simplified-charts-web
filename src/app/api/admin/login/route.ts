@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminCookie, makeSession } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import crypto from 'crypto';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const MAX_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
@@ -24,6 +19,7 @@ function getClientKey(req: Request) {
 export async function POST(req: Request) {
   const { password } = await req.json();
   const key = getClientKey(req);
+  const supabase = getSupabaseAdmin();
 
   const { data: attempt, error: lookupError } = await supabase
     .from('admin_login_attempts')
