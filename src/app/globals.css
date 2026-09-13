@@ -509,8 +509,14 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(430px, 0.92fr);
   gap: 54px;
-  align-items: center;
-  min-height: 620px;
+
+  /* Start content near the top instead of vertically centering it */
+  align-items: start;
+
+  min-height: 0;
+  padding-top: 22px;
+  padding-bottom: 52px;
+}
 
   /* Reduced from 54px for tighter premium header-to-hero spacing */
   padding-top: 18px;
