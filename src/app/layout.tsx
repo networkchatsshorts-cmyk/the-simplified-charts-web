@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getSiteUrl } from '@/lib/supabase';
 import RouteProgress from '@/components/RouteProgress';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -28,5 +29,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </div></header>
     {children}
     <footer className="footer"><div className="container">© {new Date().getFullYear()} The Simplified Charts. Stock market analysis in Hindi.</div></footer>
+    <Analytics />
   </body></html>;
 }
