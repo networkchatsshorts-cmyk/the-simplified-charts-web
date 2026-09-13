@@ -15,12 +15,20 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+/*
+  Fixed representative signals for the homepage USP.
+
+  Desktop shows all 7.
+  Mobile shows only the first 3.
+*/
 const scoringSignals = [
   { name: 'RSI', value: '26%' },
   { name: 'Price Action', value: '90%' },
-  { name: 'Volume', value: '18%' },
+  { name: 'Volume Pressure', value: '18%' },
   { name: 'Momentum', value: '23%' },
   { name: 'Candle Structure', value: '90%' },
+  { name: 'Support / Resistance', value: '17%' },
+  { name: 'Candle Score', value: '78%' },
 ];
 
 export default async function HomePage() {
@@ -82,9 +90,17 @@ export default async function HomePage() {
 
   return (
     <main className="container">
+      {/* =========================================
+          HERO
+         ========================================= */}
+
       <section className="hero heroSplit">
-        {/* LEFT: INTRODUCTION */}
+        {/* =======================================
+            LEFT: INTRODUCTION
+           ======================================= */}
+
         <div className="heroIntro">
+          {/* Decorative visual */}
           <div className="heroVisual" aria-hidden="true">
             <div className="heroCandles">
               <span className="candle candle1"></span>
@@ -103,6 +119,7 @@ export default async function HomePage() {
             </div>
           </div>
 
+          {/* Logo */}
           <div className="heroLogoWrap">
             <Image
               src="/logo.png"
@@ -122,6 +139,7 @@ export default async function HomePage() {
             We Don&apos;t Just Read Candles. We Score Them.
           </p>
 
+          {/* Trust / subscriber row */}
           <div className="heroTrustRow">
             <div className="subscriberBadge">
               <span className="youtubeMiniIcon">▶</span>
@@ -131,8 +149,13 @@ export default async function HomePage() {
             <div className="educationInfo">
               <span className="infoIcon">ⓘ</span>
 
-              <span className="tooltipWrap">
+              <span
+                className="tooltipWrap"
+                tabIndex={0}
+                aria-label="Educational purpose only"
+              >
                 Educational purpose only
+
                 <span className="tooltip">
                   I am not SEBI registered. I am a learner with three years of
                   experience in the stock market, sharing my knowledge and
@@ -142,9 +165,11 @@ export default async function HomePage() {
             </div>
           </div>
 
+          {/* Three learning pillars */}
           <div className="heroPillars">
             <div className="heroPillar">
               <div className="pillarIcon">▤</div>
+
               <div>
                 <strong>Learn</strong>
                 <span>Practical chart analysis</span>
@@ -153,6 +178,7 @@ export default async function HomePage() {
 
             <div className="heroPillar">
               <div className="pillarIcon">▥</div>
+
               <div>
                 <strong>Understand</strong>
                 <span>Simple and structured</span>
@@ -161,6 +187,7 @@ export default async function HomePage() {
 
             <div className="heroPillar">
               <div className="pillarIcon">♟</div>
+
               <div>
                 <strong>Grow Together</strong>
                 <span>With a like-minded community</span>
@@ -169,7 +196,10 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* RIGHT: WHAT MAKES US DIFFERENT */}
+        {/* =======================================
+            RIGHT: USP / SCORING SYSTEM
+           ======================================= */}
+
         <div className="scoringPanel">
           <div className="scoringEyebrow">OUR APPROACH</div>
 
@@ -189,8 +219,13 @@ export default async function HomePage() {
 
           <div className="scoreContent">
             <div className="signalColumn">
-              {scoringSignals.slice(0, 3).map((signal) => (
-                <div className="signalRow" key={signal.name}>
+              {scoringSignals.map((signal, index) => (
+                <div
+                  className={`signalRow ${
+                    index >= 3 ? 'desktopExtraSignal' : ''
+                  }`}
+                  key={signal.name}
+                >
                   <span>{signal.name}</span>
 
                   <div className="signalBar">
@@ -204,26 +239,10 @@ export default async function HomePage() {
                 </div>
               ))}
 
-              <details className="moreSignals">
-                <summary>+ More technical parameters</summary>
-
-                <div className="moreSignalList">
-                  {scoringSignals.slice(3).map((signal) => (
-                    <div className="signalRow" key={signal.name}>
-                      <span>{signal.name}</span>
-
-                      <div className="signalBar">
-                        <div
-                          className="signalFill"
-                          style={{ width: signal.value }}
-                        />
-                      </div>
-
-                      <strong>{signal.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </details>
+              {/* Static. Not expandable. */}
+              <div className="moreSignalsLabel">
+                <span>+ More technical parameters</span>
+              </div>
             </div>
 
             <div className="scoreDivider" />
@@ -253,7 +272,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* LONG VIDEOS */}
+      {/* =========================================
+          LONG VIDEOS
+         ========================================= */}
+
       <section className="section">
         <div className="topicHeader">
           <div>
@@ -318,7 +340,10 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* SHORTS */}
+      {/* =========================================
+          SHORTS
+         ========================================= */}
+
       <section className="section">
         <div className="topicHeader">
           <div>
@@ -377,7 +402,10 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* COMMUNITY */}
+      {/* =========================================
+          COMMUNITY
+         ========================================= */}
+
       <section className="section">
         <div className="topicHeader">
           <div>
