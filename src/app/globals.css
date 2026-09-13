@@ -1493,3 +1493,19 @@ textarea {
     transform-origin: left;
   }
 }
+
+/* =========================================
+   FINAL HOMEPAGE TOP-SPACING FIX
+   ========================================= */
+
+.container > .heroSplit {
+  margin-top: -24px;
+  padding-top: 18px;
+}
+
+@media (max-width: 700px) {
+  .container > .heroSplit {
+    margin-top: -12px;
+    padding-top: 14px;
+  }
+}
