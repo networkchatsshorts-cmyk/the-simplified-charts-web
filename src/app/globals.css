@@ -511,7 +511,9 @@ button {
   gap: 54px;
   align-items: center;
   min-height: 620px;
-  padding-top: 54px;
+
+  /* Reduced from 54px for tighter premium header-to-hero spacing */
+  padding-top: 18px;
   padding-bottom: 52px;
 }
 
@@ -826,7 +828,12 @@ button {
       rgba(65, 122, 255, 0.16),
       transparent 27%
     ),
-    linear-gradient(145deg, #08111d 0%, #101b28 52%, #132131 100%);
+    linear-gradient(
+      145deg,
+      #08111d 0%,
+      #101b28 52%,
+      #132131 100%
+    );
   color: #fff;
   box-shadow:
     0 22px 48px rgba(10, 24, 40, 0.18),
@@ -1177,7 +1184,9 @@ button {
   .heroSplit {
     gap: 28px;
     min-height: 0;
-    padding-top: 30px;
+
+    /* Reduced from 30px for tighter mobile spacing */
+    padding-top: 20px;
     padding-bottom: 30px;
   }
 
