@@ -15,6 +15,14 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+const scoringSignals = [
+  { name: 'RSI', value: '26%' },
+  { name: 'Price Action', value: '90%' },
+  { name: 'Volume', value: '18%' },
+  { name: 'Momentum', value: '23%' },
+  { name: 'Candle Structure', value: '90%' },
+];
+
 export default async function HomePage() {
   const db = getSupabaseAdmin();
 
@@ -29,6 +37,7 @@ export default async function HomePage() {
       .not('topic_id', 'is', null)
       .order('published_at', { ascending: false })
       .limit(5),
+
     db
       .from('videos')
       .select(
@@ -38,6 +47,7 @@ export default async function HomePage() {
       .eq('content_type', 'short')
       .order('published_at', { ascending: false })
       .limit(5),
+
     db
       .from('community_posts')
       .select('*')
@@ -72,30 +82,169 @@ export default async function HomePage() {
 
   return (
     <main className="container">
-      <section className="hero">
-        <div className="eyebrow">The Simplified Charts</div>
-        <h1>Stock Analysis Built on a Scored Candle System</h1>
+      <section className="hero heroSplit">
+        {/* LEFT SIDE: INTRODUCTION */}
+        <div className="heroIntro">
+          <div className="heroLogoWrap">
+            <Image
+              src="/logo.png"
+              alt="The Simplified Charts"
+              width={180}
+              height={180}
+              className="heroLogo"
+              priority
+            />
+          </div>
 
-        <p className="lead">
-          We Don't Just Read Candles. We Score Them. Multiple technical
-          parameters drive a structured candle score, which helps identify
-          three key zones: HOLD, CAUTION, and STRUCTURE BREAKDOWN.
-        
-          I am not SEBI registered. I am a learner with three years of
-          experience in the stock market, sharing my knowledge and
-          learnings with friends for educational purposes only.
-        </p>
+          <div className="eyebrow">The Simplified Charts</div>
 
-        <a
-          className="btn primary"
-          href={process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#'}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Direct on YouTube ↗
-        </a>
+          <h1>Stock Analysis Built on a Scored Candle System</h1>
+
+          <p className="heroStatement">
+            We Don&apos;t Just Read Candles. We Score Them.
+          </p>
+
+          <div className="heroTrustRow">
+            <div className="subscriberBadge">
+              <span className="youtubeMiniIcon">▶</span>
+              <strong>1,300+ Subscribers</strong>
+            </div>
+
+            <div className="educationInfo">
+              <span className="infoIcon">ⓘ</span>
+              <span className="tooltipWrap">
+                Educational purpose only
+                <span className="tooltip">
+                  I am not SEBI registered. I am a learner with three years of
+                  experience in the stock market, sharing my knowledge and
+                  learnings with friends for educational purposes only.
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <div className="heroPillars">
+            <div className="heroPillar">
+              <div className="pillarIcon">▤</div>
+              <div>
+                <strong>Learn</strong>
+                <span>Practical chart analysis</span>
+              </div>
+            </div>
+
+            <div className="heroPillar">
+              <div className="pillarIcon">▥</div>
+              <div>
+                <strong>Understand</strong>
+                <span>Simple and structured</span>
+              </div>
+            </div>
+
+            <div className="heroPillar">
+              <div className="pillarIcon">♟</div>
+              <div>
+                <strong>Grow Together</strong>
+                <span>With a like-minded community</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE: USP / DIFFERENTIATOR */}
+        <div className="scoringPanel">
+          <div className="scoringEyebrow">OUR APPROACH</div>
+
+          <h2>
+            What makes us <span>different?</span>
+          </h2>
+
+          <div className="scoreHeadline">
+            Multiple signals.{' '}
+            <strong>The Simplified Score.</strong>
+          </div>
+
+          <p className="scoreDescription">
+            Our AI generated system evaluates multiple technical parameters
+            from each candle and converts them into a single score, so you
+            don&apos;t have to analyse everything manually.
+          </p>
+
+          <div className="scoreContent">
+            <div className="signalColumn">
+              {scoringSignals.slice(0, 3).map((signal, index) => (
+                <div
+                  className={`signalRow ${
+                    index >= 2 ? 'mobileCompactSignal' : ''
+                  }`}
+                  key={signal.name}
+                >
+                  <span>{signal.name}</span>
+
+                  <div className="signalBar">
+                    <div
+                      className="signalFill"
+                      style={{
+                        width: signal.value,
+                      }}
+                    />
+                  </div>
+
+                  <strong>{signal.value}</strong>
+                </div>
+              ))}
+
+              <details className="moreSignals">
+                <summary>+ More technical parameters</summary>
+
+                <div className="moreSignalList">
+                  {scoringSignals.slice(3).map((signal) => (
+                    <div className="signalRow" key={signal.name}>
+                      <span>{signal.name}</span>
+
+                      <div className="signalBar">
+                        <div
+                          className="signalFill"
+                          style={{
+                            width: signal.value,
+                          }}
+                        />
+                      </div>
+
+                      <strong>{signal.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+
+            <div className="scoreDivider" />
+
+            <div className="scoreResult">
+              <div className="resultLabel">THE SIMPLIFIED SCORE</div>
+
+              <div className="scoreNumber">-5.18</div>
+
+              <div className="zoneArrow">↓</div>
+
+              <div className="zonesCard">
+                <div className="zonesTitle">THREE KEY ZONES</div>
+
+                <div className="zones">
+                  <span className="zone hold">HOLD</span>
+                  <span className="zone caution">CAUTION</span>
+                  <span className="zone breakdown">BREAKDOWN</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="scoringFooter">
+            See how our scoring system works in the videos.
+          </div>
+        </div>
       </section>
 
+      {/* LONG VIDEOS */}
       <section className="section">
         <div className="topicHeader">
           <div>
@@ -160,6 +309,7 @@ export default async function HomePage() {
         )}
       </section>
 
+      {/* SHORTS */}
       <section className="section">
         <div className="topicHeader">
           <div>
@@ -218,6 +368,7 @@ export default async function HomePage() {
         )}
       </section>
 
+      {/* COMMUNITY */}
       <section className="section">
         <div className="topicHeader">
           <div>
