@@ -131,8 +131,6 @@ export default async function HomePage() {
             />
           </div>
 
-          <div className="eyebrow">The Simplified Charts</div>
-
           <h1>Stock Analysis Built on a Scored Candle System</h1>
 
           <p className="heroStatement">
