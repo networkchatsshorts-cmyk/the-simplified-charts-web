@@ -7,28 +7,81 @@ import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: { default: 'The Simplified Charts | Stock Market Analysis in Hindi', template: '%s | The Simplified Charts' },
-  description: 'Stock market analysis in Hindi covering breakouts, support zones, price action and practical buy or sell frameworks.',
-  alternates: { canonical: '/' },
-  robots: { index: true, follow: true },
+
+  title: {
+    default: 'The Simplified Charts | Scored Candle Stock Analysis',
+    template: '%s | The Simplified Charts',
+  },
+
+  description:
+    "We don't just read candles. We score them. Explore Indian stock analysis, simplified technical analysis, key price zones, breakouts and chart-based market insights.",
+
+  alternates: {
+    canonical: '/',
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const youtubeUrl = process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#';
-  return <html lang="en"><body>
-    <RouteProgress />
-    <header className="header"><div className="container nav">
-      <Link className="brand" href="/">The Simplified Charts</Link>
-      <nav className="navlinks" aria-label="Primary">
-        <Link href="/">Home</Link>
-        <Link href="/videos">Long Videos</Link>
-        <Link href="/shorts">Shorts</Link>
-        <Link href="/community">Community</Link>
-        <a href={youtubeUrl} target="_blank" rel="noreferrer">Direct on YouTube</a>
-      </nav>
-    </div></header>
-    {children}
-    <footer className="footer"><div className="container">© {new Date().getFullYear()} The Simplified Charts. Stock market analysis in Hindi.</div></footer>
-    <Analytics />
-  </body></html>;
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const youtubeUrl =
+    process.env.NEXT_PUBLIC_YOUTUBE_CHANNEL_URL || '#';
+
+  return (
+    <html lang="en">
+      <body>
+        <RouteProgress />
+
+        <header className="header">
+          <div className="container nav">
+            <Link className="brand" href="/">
+              The Simplified Charts
+            </Link>
+
+            <nav className="navlinks" aria-label="Primary">
+              <Link href="/">Home</Link>
+
+              <Link href="/videos">
+                Long Videos
+              </Link>
+
+              <Link href="/shorts">
+                Shorts
+              </Link>
+
+              <Link href="/community">
+                Community
+              </Link>
+
+              <a
+                href={youtubeUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Direct on YouTube
+              </a>
+            </nav>
+          </div>
+        </header>
+
+        {children}
+
+        <footer className="footer">
+          <div className="container">
+            © {new Date().getFullYear()} The Simplified Charts.
+            Scored candle analysis for simpler, clearer stock-market learning.
+          </div>
+        </footer>
+
+        <Analytics />
+      </body>
+    </html>
+  );
 }
