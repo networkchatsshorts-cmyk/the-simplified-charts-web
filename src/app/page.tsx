@@ -83,8 +83,26 @@ export default async function HomePage() {
   return (
     <main className="container">
       <section className="hero heroSplit">
-        {/* LEFT SIDE: INTRODUCTION */}
+        {/* LEFT: INTRODUCTION */}
         <div className="heroIntro">
+          <div className="heroVisual" aria-hidden="true">
+            <div className="heroCandles">
+              <span className="candle candle1"></span>
+              <span className="candle candle2"></span>
+              <span className="candle candle3"></span>
+              <span className="candle candle4"></span>
+              <span className="candle candle5"></span>
+              <span className="candle candle6"></span>
+              <span className="trendLine"></span>
+            </div>
+
+            <div className="clarityTag">
+              <span>From</span>
+              <span>Signals to</span>
+              <span>Clarity</span>
+            </div>
+          </div>
+
           <div className="heroLogoWrap">
             <Image
               src="/logo.png"
@@ -112,6 +130,7 @@ export default async function HomePage() {
 
             <div className="educationInfo">
               <span className="infoIcon">ⓘ</span>
+
               <span className="tooltipWrap">
                 Educational purpose only
                 <span className="tooltip">
@@ -150,7 +169,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: USP / DIFFERENTIATOR */}
+        {/* RIGHT: WHAT MAKES US DIFFERENT */}
         <div className="scoringPanel">
           <div className="scoringEyebrow">OUR APPROACH</div>
 
@@ -159,8 +178,7 @@ export default async function HomePage() {
           </h2>
 
           <div className="scoreHeadline">
-            Multiple signals.{' '}
-            <strong>The Simplified Score.</strong>
+            Multiple signals. <strong>The Simplified Score.</strong>
           </div>
 
           <p className="scoreDescription">
@@ -171,21 +189,14 @@ export default async function HomePage() {
 
           <div className="scoreContent">
             <div className="signalColumn">
-              {scoringSignals.slice(0, 3).map((signal, index) => (
-                <div
-                  className={`signalRow ${
-                    index >= 2 ? 'mobileCompactSignal' : ''
-                  }`}
-                  key={signal.name}
-                >
+              {scoringSignals.slice(0, 3).map((signal) => (
+                <div className="signalRow" key={signal.name}>
                   <span>{signal.name}</span>
 
                   <div className="signalBar">
                     <div
                       className="signalFill"
-                      style={{
-                        width: signal.value,
-                      }}
+                      style={{ width: signal.value }}
                     />
                   </div>
 
@@ -204,9 +215,7 @@ export default async function HomePage() {
                       <div className="signalBar">
                         <div
                           className="signalFill"
-                          style={{
-                            width: signal.value,
-                          }}
+                          style={{ width: signal.value }}
                         />
                       </div>
 
