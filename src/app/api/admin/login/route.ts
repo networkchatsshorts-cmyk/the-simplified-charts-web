@@ -13,30 +13,42 @@ const LOCK_MINUTES = 15;
 
 function getClientKey(req: Request) {
   const forwarded = req.headers.get('x-forwarded-for');
-  const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+  const ip =
+    forwarded?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
 
-  return crypto
-    .createHash('sha256')
-    .update(ip)
-    .digest('hex');
+  return crypto.createHash('sha256').update(ip).digest('hex');
 }
 
 export async function POST(req: Request) {
   const { password } = await req.json();
   const key = getClientKey(req);
 
-  const { data: attempt } = await supabase
+  const { data: attempt, error: lookupError } = await supabase
     .from('admin_login_attempts')
     .select('failed_attempts, locked_until')
     .eq('key', key)
     .maybeSingle();
+
+  if (lookupError) {
+    console.error('ADMIN LOGIN LOOKUP ERROR:', lookupError);
+
+    return NextResponse.json(
+      { error: 'Login security check failed' },
+      { status: 500 }
+    );
+  }
 
   if (attempt?.locked_until) {
     const lockedUntil = new Date(attempt.locked_until);
 
     if (lockedUntil > new Date()) {
       return NextResponse.json(
-        { error: 'Too many failed attempts. Please try again in 15 minutes.' },
+        {
+          error:
+            'Too many failed attempts. Please try again in 15 minutes.',
+        },
         { status: 429 }
       );
     }
@@ -47,10 +59,12 @@ export async function POST(req: Request) {
 
     const lockedUntil =
       failedAttempts >= MAX_ATTEMPTS
-        ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000).toISOString()
+        ? new Date(
+            Date.now() + LOCK_MINUTES * 60 * 1000
+          ).toISOString()
         : null;
 
-    await supabase
+    const { error: upsertError } = await supabase
       .from('admin_login_attempts')
       .upsert(
         {
@@ -62,9 +76,21 @@ export async function POST(req: Request) {
         { onConflict: 'key' }
       );
 
+    if (upsertError) {
+      console.error('ADMIN LOGIN UPSERT ERROR:', upsertError);
+
+      return NextResponse.json(
+        { error: 'Login security check failed' },
+        { status: 500 }
+      );
+    }
+
     if (lockedUntil) {
       return NextResponse.json(
-        { error: 'Too many failed attempts. Please try again in 15 minutes.' },
+        {
+          error:
+            'Too many failed attempts. Please try again in 15 minutes.',
+        },
         { status: 429 }
       );
     }
@@ -75,10 +101,14 @@ export async function POST(req: Request) {
     );
   }
 
-  await supabase
+  const { error: deleteError } = await supabase
     .from('admin_login_attempts')
     .delete()
     .eq('key', key);
+
+  if (deleteError) {
+    console.error('ADMIN LOGIN DELETE ERROR:', deleteError);
+  }
 
   const res = NextResponse.json({ ok: true });
 
