@@ -230,10 +230,7 @@ export default async function VideoPage({
         </section>
 
         <section className="section">
-          <div className="eyebrow">
-            Analysis
-          </div>
-
+          
           <h2>About this analysis</h2>
 
           <div className="prose">
