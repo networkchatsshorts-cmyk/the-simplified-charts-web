@@ -12,9 +12,7 @@ export type IndexNowResult = {
   errors: string[];
 };
 
-export async function submitToIndexNow(
-  urls: string[]
-): Promise<IndexNowResult> {
+export async function submitToIndexNow(urls: string[]): Promise<IndexNowResult> {
   const key = process.env.INDEXNOW_API_KEY;
   const uniqueUrls = [...new Set(urls.filter(Boolean))];
 
@@ -36,10 +34,8 @@ export async function submitToIndexNow(
 
   const siteUrl = getSiteUrl();
   const host = new URL(siteUrl).host;
-
   let submitted = 0;
   let failed = 0;
-
   const statuses: Array<{ status: number; count: number }> = [];
   const errors: string[] = [];
 
@@ -68,31 +64,20 @@ export async function submitToIndexNow(
       });
 
       let responseBody = '';
-
       try {
         responseBody = await response.text();
       } catch {
         responseBody = '';
       }
 
-      statuses.push({
-        status: response.status,
-        count: batch.length,
-      });
+      statuses.push({ status: response.status, count: batch.length });
 
       if (response.ok) {
         submitted += batch.length;
       } else {
         failed += batch.length;
-
         if (errors.length < 10) {
-          errors.push(
-            `HTTP ${response.status}${
-              responseBody
-                ? `: ${responseBody.slice(0, 300)}`
-                : ''
-            }`
-          );
+          errors.push(`HTTP ${response.status}${responseBody ? `: ${responseBody.slice(0, 300)}` : ''}`);
         }
       }
 
@@ -105,26 +90,15 @@ export async function submitToIndexNow(
       });
 
       if (response.status === 429) {
-        console.warn(
-          '[IndexNow] Rate limit reached; stopping remaining batches.',
-          {
-            remaining:
-              uniqueUrls.length - (i + batch.length),
-          }
-        );
+        console.warn('[IndexNow] Rate limit reached; stopping remaining batches.', {
+          remaining: uniqueUrls.length - (i + batch.length),
+        });
         break;
       }
     } catch (error) {
       failed += batch.length;
-
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Unknown request error.';
-
-      if (errors.length < 10) {
-        errors.push(message);
-      }
+      const message = error instanceof Error ? error.message : 'Unknown request error.';
+      if (errors.length < 10) errors.push(message);
 
       console.error('[IndexNow] Request failed', {
         message,
@@ -133,7 +107,7 @@ export async function submitToIndexNow(
     }
   }
 
-  const result: IndexNowResult = {
+  const result = {
     attempted: uniqueUrls.length,
     submitted,
     failed,
@@ -143,6 +117,5 @@ export async function submitToIndexNow(
   };
 
   console.info('[IndexNow] Submission complete', result);
-
   return result;
 }
