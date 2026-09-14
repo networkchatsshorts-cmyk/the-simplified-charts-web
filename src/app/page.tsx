@@ -281,9 +281,6 @@ export default async function HomePage() {
             <h2>Recent Long Videos</h2>
           </div>
 
-          <Link className="btn" href="/long-videos">
-            Explore more long videos →
-          </Link>
         </div>
 
         <div className="grid">
@@ -327,6 +324,63 @@ export default async function HomePage() {
               </div>
             </Link>
           ))}
+
+          <Link
+            className="card exploreMoreCard"
+            href="/long-videos"
+            aria-label="Explore more videos and playlists"
+          >
+            <div
+              style={{
+                width: '100%',
+                minHeight: '100%',
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                boxSizing: 'border-box',
+                background:
+                  'linear-gradient(145deg, #ffffff 0%, #f4f6f8 100%)',
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#111827',
+                  color: '#ffffff',
+                  fontSize: '21px',
+                  marginBottom: '18px',
+                }}
+              >
+                ↗
+              </div>
+
+              <div className="eyebrow">EXPLORE MORE</div>
+
+              <h3 style={{ margin: '8px 0 10px' }}>
+                Videos &amp; Playlists
+              </h3>
+
+              <p className="small" style={{ lineHeight: 1.6 }}>
+                Discover more stock analysis and explore all our playlists.
+              </p>
+
+              <span
+                style={{
+                  marginTop: '18px',
+                  fontWeight: 700,
+                  color: '#111827',
+                }}
+              >
+                Explore →
+              </span>
+            </div>
+          </Link>
         </div>
 
         {!longVideos.length && (
@@ -349,9 +403,6 @@ export default async function HomePage() {
             <h2>Recent Shorts</h2>
           </div>
 
-          <Link className="btn" href="/shorts">
-            Explore more short videos →
-          </Link>
         </div>
 
         <div className="grid">
@@ -389,6 +440,63 @@ export default async function HomePage() {
               </div>
             </Link>
           ))}
+
+          <Link
+            className="card exploreMoreCard"
+            href="/shorts"
+            aria-label="Explore more Shorts"
+          >
+            <div
+              style={{
+                width: '100%',
+                minHeight: '100%',
+                padding: '28px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                boxSizing: 'border-box',
+                background:
+                  'linear-gradient(145deg, #ffffff 0%, #f4f6f8 100%)',
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#111827',
+                  color: '#ffffff',
+                  fontSize: '21px',
+                  marginBottom: '18px',
+                }}
+              >
+                ↗
+              </div>
+
+              <div className="eyebrow">EXPLORE MORE</div>
+
+              <h3 style={{ margin: '8px 0 10px' }}>
+                Shorts
+              </h3>
+
+              <p className="small" style={{ lineHeight: 1.6 }}>
+                Quick stock insights, charts and market ideas.
+              </p>
+
+              <span
+                style={{
+                  marginTop: '18px',
+                  fontWeight: 700,
+                  color: '#111827',
+                }}
+              >
+                Explore →
+              </span>
+            </div>
+          </Link>
         </div>
 
         {!shortVideos.length && (
@@ -426,6 +534,31 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      <style>{`
+        .exploreMoreCard {
+          overflow: hidden;
+          transition:
+            transform 0.22s ease,
+            box-shadow 0.22s ease,
+            border-color 0.22s ease;
+        }
+
+        .exploreMoreCard > div {
+          transition:
+            background 0.22s ease,
+            transform 0.22s ease;
+        }
+
+        .exploreMoreCard:hover > div {
+          background:
+            linear-gradient(145deg, #f8fafc 0%, #eef2f7 100%);
+        }
+
+        .exploreMoreCard:hover .eyebrow {
+          letter-spacing: 0.12em;
+        }
+      `}</style>
     </main>
   );
 }
