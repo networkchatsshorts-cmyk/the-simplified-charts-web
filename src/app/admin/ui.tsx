@@ -105,7 +105,15 @@ export default function AdminClient() {
     setStatus(
       `${d.playlist.title} synced. ${d.synced}/${d.found} videos imported${
         d.skipped ? `, ${d.skipped} skipped` : ''
-      }${d.archived ? `, ${d.archived} archived` : ''}.`
+      }${d.archived ? `, ${d.archived} archived` : ''}.${
+        d.indexNow
+          ? ` IndexNow: ${d.indexNow.submitted}/${d.indexNow.attempted} submitted${
+              d.indexNow.failed
+                ? `, ${d.indexNow.failed} failed`
+                : ''
+            }.`
+          : ''
+      }`
     );
 
     setPlaylist('');
@@ -138,11 +146,31 @@ export default function AdminClient() {
       0
     );
 
+    const indexNowAttempted = successes.reduce(
+      (sum: number, x: any) =>
+        sum + (x.summary?.indexNow?.attempted || 0),
+      0
+    );
+
+    const indexNowSubmitted = successes.reduce(
+      (sum: number, x: any) =>
+        sum + (x.summary?.indexNow?.submitted || 0),
+      0
+    );
+
+    const indexNowFailed = successes.reduce(
+      (sum: number, x: any) =>
+        sum + (x.summary?.indexNow?.failed || 0),
+      0
+    );
+
     setStatus(
       `All playlists synced. ${successes.length} succeeded${
         failures.length ? `, ${failures.length} failed` : ''
       }. ${imported} videos updated/imported${
         archived ? `, ${archived} archived` : ''
+      }. IndexNow: ${indexNowSubmitted}/${indexNowAttempted} submitted${
+        indexNowFailed ? `, ${indexNowFailed} failed` : ''
       }.`
     );
 
@@ -171,10 +199,60 @@ export default function AdminClient() {
         x.newlyClassified
           ? `, ${x.newlyClassified} newly classified`
           : ''
-      }.`
+      }.${
+        x.indexNow
+          ? ` IndexNow: ${x.indexNow.submitted}/${x.indexNow.attempted} submitted${
+              x.indexNow.failed
+                ? `, ${x.indexNow.failed} failed`
+                : ''
+            }.`
+          : ''
+      }`
     );
 
     await load();
+  }
+
+  async function submitAllToIndexNow() {
+    setStatus(
+      'Collecting all published video URLs and submitting them to IndexNow...'
+    );
+
+    try {
+      const r = await fetch('/api/admin/indexnow', {
+        method: 'POST',
+      });
+
+      const d = await r.json();
+
+      if (!r.ok) {
+        return setStatus(
+          d.error || 'IndexNow submission failed.'
+        );
+      }
+
+      const result = d.indexNow || {};
+
+      setStatus(
+        `IndexNow complete. ${result.submitted || 0}/${
+          d.totalUrls || 0
+        } URLs submitted successfully${
+          result.failed
+            ? `, ${result.failed} failed`
+            : ''
+        }${
+          result.errors?.length
+            ? ` ${result.errors[0]}`
+            : ''
+        }`
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'IndexNow submission failed.'
+      );
+    }
   }
 
   async function addShort() {
@@ -491,6 +569,27 @@ export default function AdminClient() {
               onClick={syncAllShorts}
             >
               Sync All Shorts
+            </button>
+          </div>
+        </div>
+
+        <div className="card adminActionCard">
+          <div className="cardbody">
+            <div className="eyebrow">IndexNow</div>
+
+            <h3>Submit Existing Video URLs</h3>
+
+            <p className="small">
+              Submit every currently published Long Video
+              and Short URL to Bing via IndexNow.
+              The server logs the response status for each batch.
+            </p>
+
+            <button
+              className="btn primary"
+              onClick={submitAllToIndexNow}
+            >
+              Submit URLs to IndexNow
             </button>
           </div>
         </div>
