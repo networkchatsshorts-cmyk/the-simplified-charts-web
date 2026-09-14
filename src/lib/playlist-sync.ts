@@ -22,6 +22,7 @@ export type PlaylistSyncSummary = {
   skipped: number;
   archived: number;
   errors: string[];
+  indexNow: Awaited<ReturnType<typeof submitToIndexNow>>;
 };
 
 const shortThresholdSeconds = 180;
@@ -261,7 +262,9 @@ export async function syncPlaylistById(
 
   // IndexNow is best-effort. A notification failure must not
   // break the successful YouTube/Supabase sync.
-  await submitToIndexNow(Array.from(indexNowUrls));
+  const indexNow = await submitToIndexNow(
+    Array.from(indexNowUrls)
+  );
 
   return {
     playlist: {
@@ -276,6 +279,7 @@ export async function syncPlaylistById(
     skipped,
     archived,
     errors,
+    indexNow,
   };
 }
 
@@ -481,7 +485,11 @@ export async function syncChannelShorts(
     }
   }
 
-  await submitToIndexNow(Array.from(indexNowUrls));
+  // IndexNow is best-effort. A notification failure must not
+  // break the successful YouTube/Supabase sync.
+  const indexNow = await submitToIndexNow(
+    Array.from(indexNowUrls)
+  );
 
   return {
     channel: channel.title,
@@ -492,6 +500,7 @@ export async function syncChannelShorts(
     newlyClassified,
     thresholdSeconds: shortThresholdSeconds,
     errors,
+    indexNow,
   };
 }
 
