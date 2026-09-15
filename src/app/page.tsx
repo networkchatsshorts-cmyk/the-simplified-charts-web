@@ -34,7 +34,12 @@ const scoringSignals = [
 export default async function HomePage() {
   const db = getSupabaseAdmin();
 
-  const [longResult, shortResult, postResult, subscriberResult] = await Promise.all([
+  const [
+    longResult,
+    shortResult,
+    postResult,
+    subscriberResult,
+  ] = await Promise.all([
     db
       .from('videos')
       .select(
@@ -74,6 +79,7 @@ export default async function HomePage() {
   const longVideos = longResult.data || [];
   const shortVideos = shortResult.data || [];
   const latestPost = postResult.data || null;
+
   const subscriberCount =
     typeof subscriberResult.data?.subscriber_count === 'number'
       ? subscriberResult.data.subscriber_count
