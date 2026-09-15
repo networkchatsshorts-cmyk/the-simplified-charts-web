@@ -149,6 +149,34 @@ export default function AdminClient() {
     await load();
   }
 
+  async function syncSubscriberCount() {
+    setStatus('Fetching the current YouTube subscriber count...');
+
+    try {
+      const r = await fetch('/api/admin/sync-subscriber-count', {
+        method: 'POST',
+      });
+
+      const d = await r.json();
+
+      if (!r.ok) {
+        return setStatus(d.error || 'Subscriber count sync failed.');
+      }
+
+      setStatus(
+        `Subscriber count synced: ${Number(d.subscriberCount).toLocaleString(
+          'en-IN'
+        )} subscribers.`
+      );
+    } catch (error) {
+      return setStatus(
+        error instanceof Error
+          ? error.message
+          : 'Subscriber count sync failed.'
+      );
+    }
+  }
+
   async function syncAllShorts() {
     setStatus(
       'Scanning the channel uploads and syncing Shorts under 3 minutes...'
@@ -175,48 +203,6 @@ export default function AdminClient() {
     );
 
     await load();
-  }
-
-  async function submitVideoToIndexNow(video: Video) {
-    setStatus(`Submitting "${video.title}" to IndexNow...`);
-
-    try {
-      const r = await fetch('/api/admin/indexnow', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          url: `${window.location.origin}/videos/${video.slug}`,
-        }),
-      });
-
-      const d = await r.json();
-
-      if (!r.ok) {
-        return setStatus(
-          d.error || 'IndexNow submission failed.'
-        );
-      }
-
-      const result = d.indexNow || {};
-
-      setStatus(
-        result.submitted === 1
-          ? `IndexNow: ${video.title} submitted successfully (HTTP ${
-              result.statuses?.[0]?.status ?? 'unknown'
-            }).`
-          : `IndexNow: ${video.title} was not submitted.${
-              result.errors?.length
-                ? ` ${result.errors[0]}`
-                : ''
-            }`
-      );
-    } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'IndexNow submission failed.'
-      );
-    }
   }
 
   async function addShort() {
@@ -533,6 +519,26 @@ export default function AdminClient() {
               onClick={syncAllShorts}
             >
               Sync All Shorts
+            </button>
+          </div>
+        </div>
+
+        <div className="card adminActionCard">
+          <div className="cardbody">
+            <div className="eyebrow">Channel Stats</div>
+
+            <h3>Sync YouTube Subscriber Count</h3>
+
+            <p className="small">
+              Manually fetch the current subscriber count from YouTube and
+              update the number shown on the homepage.
+            </p>
+
+            <button
+              className="btn"
+              onClick={syncSubscriberCount}
+            >
+              Sync Subscriber Count
             </button>
           </div>
         </div>
@@ -927,14 +933,7 @@ export default function AdminClient() {
                     rel="noreferrer"
                   >
                     Open ↗
-                  </a>{' '}
-
-                  <button
-                    className="btn"
-                    onClick={() => submitVideoToIndexNow(v)}
-                  >
-                    Submit Request to Index Now
-                  </button>
+                  </a>
                 </td>
               </tr>
             ))}
