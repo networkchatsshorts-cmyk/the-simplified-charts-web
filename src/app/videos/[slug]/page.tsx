@@ -76,7 +76,10 @@ const getVideo = cache(async (slug: string) => {
   return attachTopic(db, currentVideo);
 });
 
-async function attachTopic(db: ReturnType<typeof getSupabaseAdmin>, video: any) {
+async function attachTopic(
+  db: ReturnType<typeof getSupabaseAdmin>,
+  video: any
+) {
   let topic = null;
 
   if (video.topic_id) {
@@ -196,12 +199,6 @@ export default async function VideoPage({
 
           <h1>{video.title}</h1>
 
-          {video.seo_description && (
-            <p className="lead">
-              {video.seo_description}
-            </p>
-          )}
-
           {video.published_at && (
             <div className="videoDate">
               Uploaded{' '}
@@ -270,7 +267,6 @@ export default async function VideoPage({
         </section>
 
         <section className="section">
-          
           <h2>About this analysis</h2>
 
           <div className="prose">
