@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   getSupabaseAdmin,
   getSiteUrl,
@@ -22,9 +22,7 @@ function formatDate(value: string | null | undefined) {
 async function getVideo(slug: string) {
   const db = getSupabaseAdmin();
 
-  // Fetch the video independently.
-  // This avoids making the video page dependent on
-  // a successful topics relation lookup.
+  // First try the current slug.
   const { data: video, error } = await db
     .from('videos')
     .select('*')
@@ -37,10 +35,47 @@ async function getVideo(slug: string) {
     return null;
   }
 
-  if (!video) {
+  if (video) {
+    return attachTopic(db, video);
+  }
+
+  // The slug may be an older URL saved before a title change.
+  // Resolve it through the redirect history table.
+  const { data: history, error: historyError } = await db
+    .from('video_slug_history')
+    .select('video_id,new_slug')
+    .eq('old_slug', slug)
+    .maybeSingle();
+
+  if (historyError) {
+    console.error('Video slug history lookup error:', historyError);
     return null;
   }
 
+  if (!history?.video_id) {
+    return null;
+  }
+
+  const { data: currentVideo, error: currentVideoError } = await db
+    .from('videos')
+    .select('*')
+    .eq('id', history.video_id)
+    .eq('published', true)
+    .maybeSingle();
+
+  if (currentVideoError) {
+    console.error('Current video lookup error:', currentVideoError);
+    return null;
+  }
+
+  if (!currentVideo) {
+    return null;
+  }
+
+  return attachTopic(db, currentVideo);
+}
+
+async function attachTopic(db: ReturnType<typeof getSupabaseAdmin>, video: any) {
   let topic = null;
 
   if (video.topic_id) {
@@ -112,6 +147,10 @@ export default async function VideoPage({
 
   if (!video) {
     notFound();
+  }
+
+  if (video.slug !== slug) {
+    permanentRedirect(`/videos/${video.slug}`);
   }
 
   const siteUrl = getSiteUrl();
