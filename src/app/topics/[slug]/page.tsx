@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -5,6 +6,44 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const db = getSupabaseAdmin();
+
+  const { data: topic } = await db
+    .from('topics')
+    .select('name,description')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (!topic) {
+    return {
+      title: 'Topic',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const description =
+    topic.description ||
+    `All ${topic.name} videos from The Simplified Charts, including price action, breakouts, support zones and structured decision analysis.`;
+
+  return {
+    title: topic.name,
+    description,
+    alternates: {
+      canonical: `/topics/${slug}`,
+    },
+  };
+}
+
 
 const formatDate = (value: string | null | undefined) =>
   value
