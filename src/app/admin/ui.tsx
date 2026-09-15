@@ -46,6 +46,8 @@ export default function AdminClient() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [playlist, setPlaylist] = useState('');
+  const [singleVideoUrl, setSingleVideoUrl] = useState('');
+  const [singleVideoTopicId, setSingleVideoTopicId] = useState('');
   const [shortUrl, setShortUrl] = useState('');
   const [postTitle, setPostTitle] = useState('');
   const [postBody, setPostBody] = useState('');
@@ -175,6 +177,53 @@ export default function AdminClient() {
     );
 
     await load();
+  }
+
+  async function syncSingleVideo() {
+    if (!singleVideoUrl.trim()) {
+      return setStatus('Paste a YouTube video URL first.');
+    }
+
+    setStatus('Fetching and syncing this YouTube video...');
+
+    try {
+      const r = await fetch('/api/admin/sync-video', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          url: singleVideoUrl,
+          topicId: singleVideoTopicId || null,
+        }),
+      });
+
+      const d = await r.json();
+
+      if (!r.ok) {
+        return setStatus(d.error || 'Single video sync failed.');
+      }
+
+      const redirectMessage = d.slugChanged
+        ? ' Old URL now permanently redirects to the new URL.'
+        : '';
+
+      const indexMessage = d.indexNow?.submitted === 1
+        ? ` IndexNow HTTP ${d.indexNow.statuses?.[0]?.status ?? 'unknown'}.`
+        : '';
+
+      setStatus(
+        `Video synced: ${d.video?.title || 'Video'}.${redirectMessage}${indexMessage}`
+      );
+
+      setSingleVideoUrl('');
+      setSingleVideoTopicId('');
+      await load();
+    } catch (error) {
+      return setStatus(
+        error instanceof Error
+          ? error.message
+          : 'Single video sync failed.'
+      );
+    }
   }
 
   async function syncSubscriberCount() {
@@ -520,6 +569,49 @@ export default function AdminClient() {
               onClick={syncPlaylist}
             >
               Sync Playlist
+            </button>
+          </div>
+        </div>
+
+        <div className="card adminActionCard">
+          <div className="cardbody">
+            <div className="eyebrow">Single Video</div>
+
+            <h3>Sync One YouTube Video</h3>
+
+            <p className="small">
+              Re-fetch one specific video from YouTube. Existing videos keep
+              their current playlist/category; choose a category only when
+              adding a new video.
+            </p>
+
+            <label>Video URL</label>
+
+            <input
+              value={singleVideoUrl}
+              onChange={e => setSingleVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+
+            <label>Playlist / category (only for a new video)</label>
+
+            <select
+              value={singleVideoTopicId}
+              onChange={e => setSingleVideoTopicId(e.target.value)}
+            >
+              <option value="">Keep existing / choose if new</option>
+              {topics.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              className="btn primary"
+              onClick={syncSingleVideo}
+            >
+              Sync Video
             </button>
           </div>
         </div>
