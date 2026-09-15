@@ -149,6 +149,34 @@ export default function AdminClient() {
     await load();
   }
 
+  async function syncAllShorts() {
+    setStatus(
+      'Scanning the channel uploads and syncing Shorts under 3 minutes...'
+    );
+
+    const r = await fetch('/api/admin/sync-all-shorts', {
+      method: 'POST',
+    });
+
+    const d = await r.json();
+
+    if (!r.ok) {
+      return setStatus(d.error || 'Shorts sync failed.');
+    }
+
+    const x = d.result;
+
+    setStatus(
+      `Shorts sync complete. ${x.found} Shorts found, ${x.synced} synced${
+        x.newlyClassified
+          ? `, ${x.newlyClassified} newly classified`
+          : ''
+      }.`
+    );
+
+    await load();
+  }
+
   async function syncSubscriberCount() {
     setStatus('Fetching the current YouTube subscriber count...');
 
@@ -177,32 +205,46 @@ export default function AdminClient() {
     }
   }
 
-  async function syncAllShorts() {
-    setStatus(
-      'Scanning the channel uploads and syncing Shorts under 3 minutes...'
-    );
+  async function submitVideoToIndexNow(video: Video) {
+    setStatus(`Submitting "${video.title}" to IndexNow...`);
 
-    const r = await fetch('/api/admin/sync-all-shorts', {
-      method: 'POST',
-    });
+    try {
+      const r = await fetch('/api/admin/indexnow', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          url: `${window.location.origin}/videos/${video.slug}`,
+        }),
+      });
 
-    const d = await r.json();
+      const d = await r.json();
 
-    if (!r.ok) {
-      return setStatus(d.error || 'Shorts sync failed.');
+      if (!r.ok) {
+        return setStatus(
+          d.error || 'IndexNow submission failed.'
+        );
+      }
+
+      const result = d.indexNow || {};
+
+      setStatus(
+        result.submitted === 1
+          ? `IndexNow: ${video.title} submitted successfully (HTTP ${
+              result.statuses?.[0]?.status ?? 'unknown'
+            }).`
+          : `IndexNow: ${video.title} was not submitted.${
+              result.errors?.length
+                ? ` ${result.errors[0]}`
+                : ''
+            }`
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'IndexNow submission failed.'
+      );
     }
-
-    const x = d.result;
-
-    setStatus(
-      `Shorts sync complete. ${x.found} Shorts found, ${x.synced} synced${
-        x.newlyClassified
-          ? `, ${x.newlyClassified} newly classified`
-          : ''
-      }.`
-    );
-
-    await load();
   }
 
   async function addShort() {
@@ -933,7 +975,14 @@ export default function AdminClient() {
                     rel="noreferrer"
                   >
                     Open ↗
-                  </a>
+                  </a>{' '}
+
+                  <button
+                    className="btn"
+                    onClick={() => submitVideoToIndexNow(v)}
+                  >
+                    Submit Request to Index Now
+                  </button>
                 </td>
               </tr>
             ))}
