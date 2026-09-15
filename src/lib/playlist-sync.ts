@@ -8,6 +8,7 @@ import {
 } from '@/lib/youtube';
 import { makeSlug } from '@/lib/slug';
 import { submitToIndexNow } from '@/lib/indexnow';
+import { recordVideoSlugHistory } from '@/lib/video-slug-history';
 
 export type PlaylistSyncSummary = {
   playlist: {
@@ -56,6 +57,108 @@ function videoRow(
     seo_title: video.title,
     seo_description: video.description?.slice(0, 160),
     published: true,
+  };
+}
+
+export async function syncVideoById(
+  videoId: string,
+  topicId?: string | null
+) {
+  const video = await fetchVideo(videoId);
+  const db = getSupabaseAdmin();
+
+  const { data: existing, error: existingError } = await db
+    .from('videos')
+    .select(
+      'id,youtube_video_id,topic_id,original_topic_id,content_type,classification_locked,slug,title,description,thumbnail_url,published_at,duration_iso,duration_seconds,published'
+    )
+    .eq('youtube_video_id', video.id)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  const resolvedTopicId = existing?.topic_id || topicId || null;
+
+  if (!existing && !resolvedTopicId) {
+    throw new Error(
+      'This video is not in the database yet. Select a playlist/category before syncing it.'
+    );
+  }
+
+  const autoType: 'short' | 'long' =
+    video.durationSeconds <= shortThresholdSeconds
+      ? 'short'
+      : 'long';
+
+  const contentType = existing?.classification_locked
+    ? existing.content_type || autoType
+    : autoType;
+
+  const row: any = videoRow(
+    video,
+    resolvedTopicId as string,
+    contentType
+  );
+
+  row.original_topic_id =
+    existing?.original_topic_id || resolvedTopicId;
+
+  if (existing?.classification_locked) {
+    row.content_type = existing.content_type;
+    row.classification_locked = true;
+  } else {
+    row.classification_locked = false;
+  }
+
+  const shouldNotifyIndexNow =
+    !existing ||
+    existing.slug !== row.slug ||
+    existing.title !== row.title ||
+    existing.description !== row.description ||
+    existing.thumbnail_url !== row.thumbnail_url ||
+    existing.published_at !== row.published_at ||
+    existing.duration_iso !== row.duration_iso ||
+    existing.duration_seconds !== row.duration_seconds ||
+    existing.topic_id !== row.topic_id ||
+    existing.content_type !== row.content_type ||
+    existing.published !== row.published;
+
+  const slugChanged =
+    !!existing && existing.slug !== row.slug;
+
+  if (slugChanged) {
+    await recordVideoSlugHistory(
+      db,
+      existing.id,
+      existing.slug,
+      row.slug
+    );
+  }
+
+  const { data: saved, error } = await db
+    .from('videos')
+    .upsert(row, { onConflict: 'youtube_video_id' })
+    .select('*')
+    .single();
+
+  if (error || !saved) {
+    throw new Error(error?.message || 'Could not save video.');
+  }
+
+  const indexNow = shouldNotifyIndexNow
+    ? await submitToIndexNow([
+        `${SITE_URL}/videos/${saved.slug}`,
+      ])
+    : null;
+
+  return {
+    ok: true,
+    video: saved,
+    slugChanged,
+    previousSlug: slugChanged ? existing?.slug : null,
+    indexNow,
   };
 }
 
@@ -202,6 +305,15 @@ export async function syncPlaylistById(
         existing.topic_id !== row.topic_id ||
         existing.content_type !== row.content_type ||
         existing.published !== row.published;
+
+      if (existing && existing.slug !== row.slug) {
+        await recordVideoSlugHistory(
+          db,
+          existing.id,
+          existing.slug,
+          row.slug
+        );
+      }
 
       const { error } = await db
         .from('videos')
@@ -454,6 +566,15 @@ export async function syncChannelShorts(
         existing.topic_id !== row.topic_id ||
         existing.content_type !== row.content_type ||
         existing.published !== row.published;
+
+      if (existing && existing.slug !== row.slug) {
+        await recordVideoSlugHistory(
+          db,
+          existing.id,
+          existing.slug,
+          row.slug
+        );
+      }
 
       const { error } = await db
         .from('videos')
