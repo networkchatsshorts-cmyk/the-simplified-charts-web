@@ -1,8 +1,19 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Shorts',
+  description:
+    'Browse the latest short-form stock market analysis from The Simplified Charts.',
+  alternates: {
+    canonical: '/shorts',
+  },
+};
+
 
 function formatDate(value: string | null | undefined) {
   return value ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : '';
