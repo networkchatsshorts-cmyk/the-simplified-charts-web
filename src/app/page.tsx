@@ -34,7 +34,7 @@ const scoringSignals = [
 export default async function HomePage() {
   const db = getSupabaseAdmin();
 
-  const [longResult, shortResult, postResult] = await Promise.all([
+  const [longResult, shortResult, postResult, subscriberResult] = await Promise.all([
     db
       .from('videos')
       .select(
@@ -63,11 +63,21 @@ export default async function HomePage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+
+    db
+      .from('channel_stats')
+      .select('subscriber_count')
+      .eq('channel_id', process.env.YOUTUBE_CHANNEL_ID || '')
+      .maybeSingle(),
   ]);
 
   const longVideos = longResult.data || [];
   const shortVideos = shortResult.data || [];
   const latestPost = postResult.data || null;
+  const subscriberCount =
+    typeof subscriberResult.data?.subscriber_count === 'number'
+      ? subscriberResult.data.subscriber_count
+      : null;
 
   const topicIds = [
     ...new Set(
@@ -141,7 +151,11 @@ export default async function HomePage() {
           <div className="heroTrustRow">
             <div className="subscriberBadge">
               <span className="youtubeMiniIcon">▶</span>
-              <strong>1,300+ Subscribers</strong>
+              <strong>
+                {subscriberCount !== null
+                  ? `${subscriberCount.toLocaleString('en-IN')} Subscribers`
+                  : '1,300+ Subscribers'}
+              </strong>
             </div>
 
             <div className="educationInfo">
