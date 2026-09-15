@@ -31,7 +31,6 @@ export async function POST() {
     const url = new URL(
       'https://www.googleapis.com/youtube/v3/channels'
     );
-
     url.searchParams.set('part', 'snippet,statistics');
     url.searchParams.set('id', channelId);
     url.searchParams.set('key', apiKey);
@@ -39,9 +38,7 @@ export async function POST() {
     const response = await fetch(url.toString(), {
       method: 'GET',
       cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
     });
 
     const data = await response.json();
@@ -76,20 +73,12 @@ export async function POST() {
       );
     }
 
-    const rawSubscriberCount =
-      channel.statistics?.subscriberCount;
-
+    const rawSubscriberCount = channel.statistics?.subscriberCount;
     const subscriberCount = Number(rawSubscriberCount);
 
-    if (
-      !Number.isSafeInteger(subscriberCount) ||
-      subscriberCount < 0
-    ) {
+    if (!Number.isSafeInteger(subscriberCount) || subscriberCount < 0) {
       return NextResponse.json(
-        {
-          error:
-            'YouTube did not return a valid subscriber count.',
-        },
+        { error: 'YouTube did not return a valid subscriber count.' },
         { status: 502 }
       );
     }
@@ -115,16 +104,11 @@ export async function POST() {
 
     if (error || !saved) {
       console.error('[Subscriber Sync] Supabase error', {
-        message:
-          error?.message || 'No saved row returned.',
+        message: error?.message || 'No saved row returned.',
       });
 
       return NextResponse.json(
-        {
-          error:
-            error?.message ||
-            'Could not save subscriber count.',
-        },
+        { error: error?.message || 'Could not save subscriber count.' },
         { status: 500 }
       );
     }
