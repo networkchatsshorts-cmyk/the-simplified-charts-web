@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import {
@@ -19,7 +20,7 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-async function getVideo(slug: string) {
+const getVideo = cache(async (slug: string) => {
   const db = getSupabaseAdmin();
 
   // First try the current slug.
@@ -73,7 +74,7 @@ async function getVideo(slug: string) {
   }
 
   return attachTopic(db, currentVideo);
-}
+});
 
 async function attachTopic(db: ReturnType<typeof getSupabaseAdmin>, video: any) {
   let topic = null;
