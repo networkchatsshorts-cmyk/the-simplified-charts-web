@@ -92,7 +92,7 @@ export default function RootLayout({
             </div>
 
             <div style={{ marginTop: '8px' }}>
-              Contact:{' '}
+              Email:{' '}
               <a href="mailto:contact@thesimplifiedcharts.in">
                 contact@thesimplifiedcharts.in
               </a>
