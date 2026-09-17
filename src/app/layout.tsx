@@ -85,9 +85,18 @@ export default function RootLayout({
 
         <footer className="footer">
           <div className="container">
-            © {new Date().getFullYear()} The Simplified Charts.
-            Scored candle analysis for simpler, clearer stock-market
-            learning.
+            <div>
+              © {new Date().getFullYear()} The Simplified Charts.
+              Scored candle analysis for simpler, clearer stock-market
+              learning.
+            </div>
+
+            <div style={{ marginTop: '8px' }}>
+              Contact:{' '}
+              <a href="mailto:contact@thesimplifiedcharts.in">
+                contact@thesimplifiedcharts.in
+              </a>
+            </div>
           </div>
         </footer>
 
