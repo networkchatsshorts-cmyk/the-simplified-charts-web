@@ -107,6 +107,11 @@ export default function SearchAndPaginate({
         matchingIndex < lastVisibleIndex;
 
       item.hidden = !shouldShow;
+      // Some existing card classes (for example .latestCard) define their
+      // own display value. An inline display:none guarantees pagination can
+      // actually hide those cards while still restoring their normal CSS
+      // display value when they become visible again.
+      item.style.display = shouldShow ? '' : 'none';
     });
 
     setResultCount((value) =>
