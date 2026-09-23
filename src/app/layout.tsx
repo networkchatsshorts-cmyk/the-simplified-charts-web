@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { getSiteUrl } from '@/lib/supabase';
 import RouteProgress from '@/components/RouteProgress';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const siteUrl = getSiteUrl();
 
@@ -101,6 +102,7 @@ export default function RootLayout({
         </footer>
 
         <Analytics />
+        <SpeedInsights />
 
         {/* Homepage/site identity structured data */}
         <script
