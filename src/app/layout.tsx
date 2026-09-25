@@ -88,6 +88,7 @@ export default function RootLayout({
 
                     <span className="navCommunityText">
                       <strong>Learning</strong>
+
                       <small>
                         Educational posts & chart lessons
                       </small>
@@ -103,6 +104,7 @@ export default function RootLayout({
                       <strong>
                         Stocks to watch next week
                       </strong>
+
                       <small>
                         Weekly watchlist & setups
                       </small>
@@ -151,187 +153,185 @@ export default function RootLayout({
           }}
         />
 
-        <style jsx>{`
-          .navCommunityDropdown {
-            position: relative;
-            display: inline-block;
-          }
+        {/* Community header dropdown styles.
+            Plain CSS — intentionally NOT styled-jsx. */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              .navCommunityDropdown {
+                position: relative;
+                display: inline-block;
+              }
 
-          .navCommunityTrigger {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            color: inherit;
-            font: inherit;
-            font-size: inherit;
-            cursor: pointer;
-            list-style: none;
-          }
+              .navCommunityTrigger {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 0;
+                border: 0;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+                font-size: inherit;
+                cursor: pointer;
+                list-style: none;
+              }
 
-          .navCommunityTrigger::-webkit-details-marker {
-            display: none;
-          }
+              .navCommunityTrigger::-webkit-details-marker {
+                display: none;
+              }
 
-          .navCommunityArrow {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            line-height: 1;
-            transition: transform 0.18s ease;
-          }
+              .navCommunityArrow {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                line-height: 1;
+                transition: transform 0.18s ease;
+              }
 
-          .navCommunityDropdown[open]
-            .navCommunityArrow {
-            transform: rotate(180deg);
-          }
+              .navCommunityDropdown[open]
+                .navCommunityArrow {
+                transform: rotate(180deg);
+              }
 
-          .navCommunityPanel {
-            position: absolute;
-            top: calc(100% + 10px);
-            right: 0;
-            z-index: 99999;
-
-            width: 330px;
-            padding: 8px;
-
-            border: 1px solid rgba(15, 23, 42, 0.12);
-            border-radius: 14px;
-
-            background: #ffffff;
-
-            box-shadow:
-              0 16px 40px
-                rgba(15, 23, 42, 0.16);
-
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-
-            transform: translateY(-4px);
-
-            transition:
-              opacity 0.16s ease,
-              visibility 0.16s ease,
-              transform 0.16s ease;
-          }
-
-          /*
-            Desktop:
-            hover over Community → menu opens.
-          */
-          @media (hover: hover) and (pointer: fine) {
-            .navCommunityDropdown:hover
-              .navCommunityPanel,
-            .navCommunityDropdown:focus-within
               .navCommunityPanel {
-              opacity: 1;
-              visibility: visible;
-              pointer-events: auto;
-              transform: translateY(0);
-            }
-          }
+                position: absolute;
+                top: calc(100% + 8px);
+                right: 0;
+                z-index: 99999;
 
-          /*
-            Mobile / click:
-            opening <details> shows the menu.
-          */
-          .navCommunityDropdown[open]
-            .navCommunityPanel {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-            transform: translateY(0);
-          }
+                width: 330px;
+                padding: 8px;
 
-          .navCommunityPanel a {
-            display: flex;
-            align-items: flex-start;
-            gap: 11px;
+                border: 1px solid rgba(15, 23, 42, 0.12);
+                border-radius: 14px;
 
-            width: 100%;
-            box-sizing: border-box;
+                background: #ffffff;
 
-            padding: 11px 12px;
+                box-shadow:
+                  0 16px 40px rgba(15, 23, 42, 0.16);
 
-            border-radius: 10px;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
 
-            color: inherit;
-            text-decoration: none;
+                transform: translateY(-4px);
 
-            transition: background 0.16s ease;
-          }
+                transition:
+                  opacity 0.16s ease,
+                  visibility 0.16s ease,
+                  transform 0.16s ease;
+              }
 
-          .navCommunityPanel a:hover {
-            background: rgba(15, 23, 42, 0.055);
-          }
+              /* Desktop hover */
+              @media (hover: hover) and (pointer: fine) {
+                .navCommunityDropdown:hover
+                  .navCommunityPanel,
+                .navCommunityDropdown:focus-within
+                  .navCommunityPanel {
+                  opacity: 1;
+                  visibility: visible;
+                  pointer-events: auto;
+                  transform: translateY(0);
+                }
+              }
 
-          .navCommunityIcon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+              /* Mobile / click */
+              .navCommunityDropdown[open]
+                .navCommunityPanel {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+                transform: translateY(0);
+              }
 
-            flex: 0 0 auto;
+              .navCommunityPanel a {
+                display: flex;
+                align-items: flex-start;
+                gap: 11px;
 
-            width: 34px;
-            height: 34px;
+                width: 100%;
+                box-sizing: border-box;
 
-            border-radius: 9px;
+                padding: 11px 12px;
 
-            background: rgba(15, 23, 42, 0.07);
+                border-radius: 10px;
 
-            font-size: 17px;
-          }
+                color: inherit;
+                text-decoration: none;
 
-          .navCommunityText {
-            min-width: 0;
-          }
+                transition:
+                  background 0.16s ease;
+              }
 
-          .navCommunityText strong,
-          .navCommunityText small {
-            display: block;
-          }
+              .navCommunityPanel a:hover {
+                background:
+                  rgba(15, 23, 42, 0.055);
+              }
 
-          .navCommunityText strong {
-            font-size: 14px;
-            line-height: 1.3;
-            margin-bottom: 2px;
-          }
+              .navCommunityIcon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
 
-          .navCommunityText small {
-            font-size: 12px;
-            line-height: 1.4;
-            opacity: 0.68;
-          }
+                flex: 0 0 auto;
 
-          @media (max-width: 700px) {
-            .navCommunityPanel {
-              left: 50%;
-              right: auto;
+                width: 34px;
+                height: 34px;
 
-              width: min(
-                320px,
-                calc(100vw - 28px)
-              );
+                border-radius: 9px;
 
-              transform: translate(
-                -50%,
-                -4px
-              );
-            }
+                background:
+                  rgba(15, 23, 42, 0.07);
 
-            .navCommunityDropdown[open]
-              .navCommunityPanel {
-              transform: translate(
-                -50%,
-                0
-              );
-            }
-          }
-        `}</style>
+                font-size: 17px;
+              }
+
+              .navCommunityText {
+                min-width: 0;
+              }
+
+              .navCommunityText strong,
+              .navCommunityText small {
+                display: block;
+              }
+
+              .navCommunityText strong {
+                margin-bottom: 2px;
+                font-size: 14px;
+                line-height: 1.3;
+              }
+
+              .navCommunityText small {
+                font-size: 12px;
+                line-height: 1.4;
+                opacity: 0.68;
+              }
+
+              @media (max-width: 700px) {
+                .navCommunityPanel {
+                  left: 50%;
+                  right: auto;
+
+                  width: min(
+                    320px,
+                    calc(100vw - 28px)
+                  );
+
+                  transform:
+                    translate(-50%, -4px);
+                }
+
+                .navCommunityDropdown[open]
+                  .navCommunityPanel {
+                  transform:
+                    translate(-50%, 0);
+                }
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
