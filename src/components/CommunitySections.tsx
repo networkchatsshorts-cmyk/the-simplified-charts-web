@@ -44,60 +44,22 @@ export default function CommunitySections({
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const closeTimer = useRef<
-    ReturnType<typeof setTimeout> | null
-  >(null);
-
-  const titleMenuRef =
-    useRef<HTMLDivElement | null>(null);
-
-  const learningPosts = posts.filter(
-    post => post.category === 'learning'
-  );
-
-  const watchPosts = posts.filter(
-    post =>
-      post.category ===
-      'stocks-to-watch-next-week'
-  );
-
-  const activePosts =
-    activeCategory === 'learning'
-      ? learningPosts
-      : watchPosts;
-
-  function openMenu() {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-
-    setMenuOpen(true);
-  }
-
-  function closeMenuSoon() {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-    }
-
-    closeTimer.current = setTimeout(() => {
-      setMenuOpen(false);
-      closeTimer.current = null;
-    }, 250);
-  }
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   function selectCategory(category: Category) {
     setActiveCategory(category);
     setMenuOpen(false);
   }
 
+  function toggleMenu() {
+    setMenuOpen(prev => !prev);
+  }
+
   useEffect(() => {
-    function handleOutsideClick(
-      event: MouseEvent
-    ) {
+    function handleOutsideClick(event: MouseEvent) {
       if (
-        titleMenuRef.current &&
-        !titleMenuRef.current.contains(
+        menuRef.current &&
+        !menuRef.current.contains(
           event.target as Node
         )
       ) {
@@ -105,9 +67,7 @@ export default function CommunitySections({
       }
     }
 
-    function handleEscape(
-      event: KeyboardEvent
-    ) {
+    function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setMenuOpen(false);
       }
@@ -133,32 +93,38 @@ export default function CommunitySections({
         'keydown',
         handleEscape
       );
-
-      if (closeTimer.current) {
-        clearTimeout(closeTimer.current);
-      }
     };
   }, []);
 
+  const learningPosts = posts.filter(
+    post => post.category === 'learning'
+  );
+
+  const watchPosts = posts.filter(
+    post =>
+      post.category ===
+      'stocks-to-watch-next-week'
+  );
+
   return (
     <section className="communitySections">
-      {/* =========================================
-          COMMUNITY HEADING + TOP MENU
-          ========================================= */}
+      {/* =====================================================
+          COMMUNITY HEADING
+          Desktop: hover opens menu via CSS
+          Mobile: tap opens menu via React state
+          ===================================================== */}
       <div
-        ref={titleMenuRef}
-        className="communityTitleArea"
-        onMouseEnter={openMenu}
-        onMouseLeave={closeMenuSoon}
+        ref={menuRef}
+        className={`communityTitleArea ${
+          menuOpen ? 'menuOpen' : ''
+        }`}
       >
         <button
           type="button"
           className="communityTitleButton"
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          onClick={() =>
-            setMenuOpen(current => !current)
-          }
+          onClick={toggleMenu}
         >
           <span>Community</span>
 
@@ -172,26 +138,21 @@ export default function CommunitySections({
           </span>
         </button>
 
-        {/* TOP MENU */}
+        {/* =================================================
+            TOP CATEGORY MENU
+            ================================================= */}
         <div
           className="communityTopMenu"
           role="menu"
-          style={{
-            display: menuOpen
-              ? 'block'
-              : 'none',
-          }}
-          onMouseEnter={openMenu}
-          onMouseLeave={closeMenuSoon}
         >
           <button
             type="button"
+            role="menuitem"
             className={`communityTopOption ${
               activeCategory === 'learning'
                 ? 'active'
                 : ''
             }`}
-            role="menuitem"
             onClick={() =>
               selectCategory('learning')
             }
@@ -211,13 +172,13 @@ export default function CommunitySections({
 
           <button
             type="button"
+            role="menuitem"
             className={`communityTopOption ${
               activeCategory ===
               'stocks-to-watch-next-week'
                 ? 'active'
                 : ''
             }`}
-            role="menuitem"
             onClick={() =>
               selectCategory(
                 'stocks-to-watch-next-week'
@@ -247,9 +208,9 @@ export default function CommunitySections({
         read and join the conversation.
       </p>
 
-      {/* =========================================
-          MAIN CATEGORY SELECTOR
-          ========================================= */}
+      {/* =====================================================
+          VISIBLE SECTION SELECTOR
+          ===================================================== */}
       <div className="communityCategoryArea">
         <div className="communityCategoryLabel">
           <span className="communityCategoryEyebrow">
@@ -292,6 +253,15 @@ export default function CommunitySections({
                 Educational posts & lessons
               </small>
             </span>
+
+            {activeCategory === 'learning' && (
+              <span
+                className="selectedBadge"
+                aria-label="Selected"
+              >
+                ✓
+              </span>
+            )}
           </button>
 
           <button
@@ -326,42 +296,55 @@ export default function CommunitySections({
                 Weekly watchlist & setups
               </small>
             </span>
+
+            {activeCategory ===
+              'stocks-to-watch-next-week' && (
+              <span
+                className="selectedBadge"
+                aria-label="Selected"
+              >
+                ✓
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      {/* =========================================
-          ACTIVE CATEGORY CONTENT
-          ========================================= */}
-      <section className="communityActiveSection">
+      {/* =====================================================
+          LEARNING SECTION
+
+          IMPORTANT:
+          This remains in the HTML even when not selected.
+          Only the visual display is switched.
+          ===================================================== */}
+      <section
+        className={`communityActiveSection ${
+          activeCategory === 'learning'
+            ? 'sectionVisible'
+            : 'sectionHidden'
+        }`}
+        aria-hidden={activeCategory !== 'learning'}
+      >
         <div className="communityActiveHeader">
           <div>
             <div className="eyebrow">
-              {CATEGORY_LABELS[activeCategory]}
+              Learning
             </div>
 
-            <h2>
-              {CATEGORY_LABELS[activeCategory]}
-            </h2>
+            <h2>Learning</h2>
 
             <p className="small">
-              {
-                CATEGORY_DESCRIPTIONS[
-                  activeCategory
-                ]
-              }
+              {CATEGORY_DESCRIPTIONS.learning}
             </p>
           </div>
         </div>
 
         <SearchAndPaginate
           placeholder="Search community post"
-          emptyMessage={`No ${CATEGORY_LABELS[
-            activeCategory
-          ].toLowerCase()} posts yet.`}
+          emptyMessage="No Learning posts yet."
           itemsLabel="Posts"
         >
-          {activePosts.map(post => {
+          {learningPosts.map(post => {
             const searchText = [
               post.title,
               post.body,
@@ -380,15 +363,91 @@ export default function CommunitySections({
             );
           })}
 
-          {!activePosts.length && (
+          {!learningPosts.length && (
             <div className="card">
               <div className="cardbody">
-                <h3>
-                  No posts in this section yet
-                </h3>
+                <h3>No Learning posts yet</h3>
 
                 <p className="small">
                   New posts will appear here.
+                </p>
+              </div>
+            </div>
+          )}
+        </SearchAndPaginate>
+      </section>
+
+      {/* =====================================================
+          STOCKS TO WATCH NEXT WEEK SECTION
+
+          Also remains in the HTML.
+          ===================================================== */}
+      <section
+        className={`communityActiveSection ${
+          activeCategory ===
+          'stocks-to-watch-next-week'
+            ? 'sectionVisible'
+            : 'sectionHidden'
+        }`}
+        aria-hidden={
+          activeCategory !==
+          'stocks-to-watch-next-week'
+        }
+      >
+        <div className="communityActiveHeader">
+          <div>
+            <div className="eyebrow">
+              Stocks to watch next week
+            </div>
+
+            <h2>
+              Stocks to watch next week
+            </h2>
+
+            <p className="small">
+              {
+                CATEGORY_DESCRIPTIONS[
+                  'stocks-to-watch-next-week'
+                ]
+              }
+            </p>
+          </div>
+        </div>
+
+        <SearchAndPaginate
+          placeholder="Search community post"
+          emptyMessage="No Stocks to watch next week posts yet."
+          itemsLabel="Posts"
+        >
+          {watchPosts.map(post => {
+            const searchText = [
+              post.title,
+              post.body,
+            ]
+              .filter(Boolean)
+              .join(' ');
+
+            return (
+              <div
+                key={post.id}
+                data-search-item
+                data-search-text={searchText}
+              >
+                <CommunityPost post={post} />
+              </div>
+            );
+          })}
+
+          {!watchPosts.length && (
+            <div className="card">
+              <div className="cardbody">
+                <h3>
+                  No Stocks to watch next week posts yet
+                </h3>
+
+                <p className="small">
+                  New weekly watchlist posts will
+                  appear here.
                 </p>
               </div>
             </div>
@@ -402,28 +461,33 @@ export default function CommunitySections({
         }
 
         /* =========================================
-           COMMUNITY TITLE
+           COMMUNITY HEADING
            ========================================= */
 
         .communityTitleArea {
           position: relative;
           display: inline-block;
           z-index: 99999;
+          overflow: visible;
         }
 
         .communityTitleButton {
           display: inline-flex;
           align-items: center;
           gap: 9px;
+
           padding: 0;
           border: 0;
+
           background: transparent;
           color: inherit;
+
           font: inherit;
           font-size: clamp(2rem, 5vw, 4rem);
           font-weight: 800;
           line-height: 1.05;
           letter-spacing: -0.04em;
+
           cursor: pointer;
         }
 
@@ -431,22 +495,26 @@ export default function CommunitySections({
           display: inline-flex;
           align-items: center;
           justify-content: center;
+
           width: 28px;
           height: 28px;
-          font-size: 20px;
+
+          border-radius: 50%;
+
+          font-size: 18px;
+
           transition:
             transform 0.18s ease,
             background 0.18s ease;
         }
 
-        .communityTitleArrow.open {
-          transform: rotate(180deg);
-        }
-
         .communityTitleButton:hover
           .communityTitleArrow {
           background: rgba(15, 23, 42, 0.08);
-          border-radius: 50%;
+        }
+
+        .communityTitleArrow.open {
+          transform: rotate(180deg);
         }
 
         /* =========================================
@@ -455,8 +523,10 @@ export default function CommunitySections({
 
         .communityTopMenu {
           position: absolute;
-          top: calc(100% + 2px);
+
+          top: calc(100% + 4px);
           left: 0;
+
           z-index: 100000;
 
           width: min(
@@ -471,13 +541,47 @@ export default function CommunitySections({
 
           border-radius: 16px;
 
-          background: #ffffff;
+          background: #fff;
 
           box-shadow:
             0 18px 50px
               rgba(15, 23, 42, 0.18);
 
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+
+          transform: translateY(4px);
+
+          transition:
+            opacity 0.16s ease,
+            visibility 0.16s ease,
+            transform 0.16s ease;
+        }
+
+        /*
+          Desktop hover.
+          No JS mouse enter/leave required.
+        */
+        @media (hover: hover) and (pointer: fine) {
+          .communityTitleArea:hover
+            .communityTopMenu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+          }
+        }
+
+        /*
+          Mobile/click state.
+        */
+        .communityTitleArea.menuOpen
+          .communityTopMenu {
+          opacity: 1;
+          visibility: visible;
           pointer-events: auto;
+          transform: translateY(0);
         }
 
         .communityTopOption {
@@ -496,6 +600,7 @@ export default function CommunitySections({
           color: inherit;
 
           text-align: left;
+
           cursor: pointer;
         }
 
@@ -544,11 +649,11 @@ export default function CommunitySections({
         .communityTopOption small {
           font-size: 13px;
           line-height: 1.4;
-          opacity: 0.7;
+          opacity: 0.72;
         }
 
         /* =========================================
-           MAIN CATEGORY SELECTOR
+           MAIN SELECTOR
            ========================================= */
 
         .communityCategoryArea {
@@ -568,7 +673,9 @@ export default function CommunitySections({
           display: flex;
           align-items: baseline;
           justify-content: space-between;
+
           gap: 16px;
+
           margin-bottom: 14px;
         }
 
@@ -594,12 +701,14 @@ export default function CommunitySections({
         }
 
         .communityCategoryTab {
+          position: relative;
+
           display: flex;
           align-items: center;
           gap: 13px;
 
           min-height: 78px;
-          padding: 15px 17px;
+          padding: 15px 48px 15px 17px;
 
           border: 1px solid
             rgba(15, 23, 42, 0.12);
@@ -610,12 +719,14 @@ export default function CommunitySections({
           color: inherit;
 
           text-align: left;
+
           cursor: pointer;
 
           transition:
             transform 0.16s ease,
             border-color 0.16s ease,
-            box-shadow 0.16s ease;
+            box-shadow 0.16s ease,
+            background 0.16s ease;
         }
 
         .communityCategoryTab:hover {
@@ -626,13 +737,21 @@ export default function CommunitySections({
               rgba(15, 23, 42, 0.08);
         }
 
+        /*
+          Strong selected state.
+        */
         .communityCategoryTab.active {
           border-color:
-            rgba(15, 23, 42, 0.4);
+            rgba(15, 23, 42, 0.55);
+
+          background:
+            rgba(15, 23, 42, 0.045);
 
           box-shadow:
             0 8px 26px
-              rgba(15, 23, 42, 0.1);
+              rgba(15, 23, 42, 0.12);
+
+          transform: translateY(-1px);
         }
 
         .tabIcon {
@@ -674,12 +793,44 @@ export default function CommunitySections({
           opacity: 0.68;
         }
 
+        .selectedBadge {
+          position: absolute;
+
+          top: 50%;
+          right: 16px;
+
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+
+          width: 28px;
+          height: 28px;
+
+          border-radius: 50%;
+
+          background: rgba(15, 23, 42, 0.92);
+          color: #fff;
+
+          font-size: 15px;
+          font-weight: 800;
+
+          transform: translateY(-50%);
+        }
+
         /* =========================================
            ACTIVE CONTENT
            ========================================= */
 
         .communityActiveSection {
           margin-top: 30px;
+        }
+
+        .communityActiveSection.sectionVisible {
+          display: block;
+        }
+
+        .communityActiveSection.sectionHidden {
+          display: none;
         }
 
         .communityActiveHeader {
@@ -725,7 +876,7 @@ export default function CommunitySections({
           }
 
           .communityCategoryTab {
-            min-height: 70px;
+            min-height: 72px;
           }
         }
       `}</style>
