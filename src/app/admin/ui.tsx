@@ -22,12 +22,15 @@ type Video = {
   classification_locked: boolean;
 };
 
+type CommunityPostCategory = 'learning' | 'stocks-to-watch-next-week';
+
 type Post = {
   id: string;
   title: string;
   body: string;
   published: boolean;
   created_at: string;
+  category?: CommunityPostCategory;
 };
 
 type Comment = {
@@ -51,6 +54,8 @@ export default function AdminClient() {
   const [shortUrl, setShortUrl] = useState('');
   const [postTitle, setPostTitle] = useState('');
   const [postBody, setPostBody] = useState('');
+  const [postCategory, setPostCategory] =
+    useState<CommunityPostCategory>('learning');
   const [postImages, setPostImages] = useState<FileList | null>(null);
   const [postYoutubeUrl, setPostYoutubeUrl] = useState('');
   const [postPublished, setPostPublished] = useState(true);
@@ -364,6 +369,7 @@ export default function AdminClient() {
 
     fd.append('title', postTitle);
     fd.append('body', postBody);
+    fd.append('category', postCategory);
     fd.append('youtubePostUrl', postYoutubeUrl);
     fd.append('published', String(postPublished));
 
@@ -385,6 +391,7 @@ export default function AdminClient() {
     if (r.ok) {
       setPostTitle('');
       setPostBody('');
+      setPostCategory('learning');
       setPostImages(null);
       setPostYoutubeUrl('');
       await load();
@@ -806,6 +813,22 @@ export default function AdminClient() {
           onChange={e => setPostBody(e.target.value)}
           placeholder="Write your community post..."
         />
+
+        <label>Community subsection</label>
+
+        <select
+          value={postCategory}
+          onChange={e =>
+            setPostCategory(
+              e.target.value as CommunityPostCategory
+            )
+          }
+        >
+          <option value="learning">Learning</option>
+          <option value="stocks-to-watch-next-week">
+            Stocks to watch next week
+          </option>
+        </select>
 
         <label>Images</label>
 
