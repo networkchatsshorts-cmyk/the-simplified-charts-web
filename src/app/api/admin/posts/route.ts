@@ -15,6 +15,12 @@ export async function POST(req: Request) {
 
   const title = String(form.get('title') || '').trim();
   const body = String(form.get('body') || '').trim();
+  const rawCategory = String(form.get('category') || 'learning').trim();
+  const category = rawCategory === 'stocks-to-watch-next-week'
+    ? rawCategory
+    : rawCategory === 'learning'
+      ? rawCategory
+      : null;
   const youtubePostUrl =
     String(form.get('youtubePostUrl') || '').trim() || null;
   const published = form.get('published') !== 'false';
