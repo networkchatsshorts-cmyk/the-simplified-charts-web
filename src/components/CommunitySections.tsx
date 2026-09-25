@@ -44,7 +44,12 @@ export default function CommunitySections({
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const closeTimer = useRef<
+    ReturnType<typeof setTimeout> | null
+  >(null);
+
+  const titleMenuRef =
+    useRef<HTMLDivElement | null>(null);
 
   const learningPosts = posts.filter(
     post => post.category === 'learning'
@@ -61,25 +66,49 @@ export default function CommunitySections({
       ? learningPosts
       : watchPosts;
 
+  function openMenu() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+
+    setMenuOpen(true);
+  }
+
+  function closeMenuSoon() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+    }
+
+    closeTimer.current = setTimeout(() => {
+      setMenuOpen(false);
+      closeTimer.current = null;
+    }, 250);
+  }
+
   function selectCategory(category: Category) {
     setActiveCategory(category);
     setMenuOpen(false);
   }
 
   useEffect(() => {
-    function handleOutsideClick(e: MouseEvent) {
+    function handleOutsideClick(
+      event: MouseEvent
+    ) {
       if (
-        menuRef.current &&
-        !menuRef.current.contains(
-          e.target as Node
+        titleMenuRef.current &&
+        !titleMenuRef.current.contains(
+          event.target as Node
         )
       ) {
         setMenuOpen(false);
       }
     }
 
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+    function handleEscape(
+      event: KeyboardEvent
+    ) {
+      if (event.key === 'Escape') {
         setMenuOpen(false);
       }
     }
@@ -104,17 +133,23 @@ export default function CommunitySections({
         'keydown',
         handleEscape
       );
+
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+      }
     };
   }, []);
 
   return (
-    <section className="communitySectionChooser">
-      {/* Community heading + desktop hover / mobile click menu */}
+    <section className="communitySections">
+      {/* =========================================
+          COMMUNITY HEADING + TOP MENU
+          ========================================= */}
       <div
-        ref={menuRef}
-        className={`communityTitleMenu ${
-          menuOpen ? 'menuOpen' : ''
-        }`}
+        ref={titleMenuRef}
+        className="communityTitleArea"
+        onMouseEnter={openMenu}
+        onMouseLeave={closeMenuSoon}
       >
         <button
           type="button"
@@ -122,7 +157,7 @@ export default function CommunitySections({
           aria-expanded={menuOpen}
           aria-haspopup="menu"
           onClick={() =>
-            setMenuOpen(prev => !prev)
+            setMenuOpen(current => !current)
           }
         >
           <span>Community</span>
@@ -137,19 +172,26 @@ export default function CommunitySections({
           </span>
         </button>
 
+        {/* TOP MENU */}
         <div
           className="communityTopMenu"
           role="menu"
-          aria-hidden={!menuOpen}
+          style={{
+            display: menuOpen
+              ? 'block'
+              : 'none',
+          }}
+          onMouseEnter={openMenu}
+          onMouseLeave={closeMenuSoon}
         >
           <button
             type="button"
-            role="menuitem"
             className={`communityTopOption ${
               activeCategory === 'learning'
                 ? 'active'
                 : ''
             }`}
+            role="menuitem"
             onClick={() =>
               selectCategory('learning')
             }
@@ -169,13 +211,13 @@ export default function CommunitySections({
 
           <button
             type="button"
-            role="menuitem"
             className={`communityTopOption ${
               activeCategory ===
               'stocks-to-watch-next-week'
                 ? 'active'
                 : ''
             }`}
+            role="menuitem"
             onClick={() =>
               selectCategory(
                 'stocks-to-watch-next-week'
@@ -205,7 +247,9 @@ export default function CommunitySections({
         read and join the conversation.
       </p>
 
-      {/* Main visible section selector */}
+      {/* =========================================
+          MAIN CATEGORY SELECTOR
+          ========================================= */}
       <div className="communityCategoryArea">
         <div className="communityCategoryLabel">
           <span className="communityCategoryEyebrow">
@@ -237,7 +281,9 @@ export default function CommunitySections({
               selectCategory('learning')
             }
           >
-            <span className="tabIcon">📘</span>
+            <span className="tabIcon">
+              📘
+            </span>
 
             <span className="tabText">
               <strong>Learning</strong>
@@ -267,7 +313,9 @@ export default function CommunitySections({
               )
             }
           >
-            <span className="tabIcon">📈</span>
+            <span className="tabIcon">
+              📈
+            </span>
 
             <span className="tabText">
               <strong>
@@ -282,7 +330,9 @@ export default function CommunitySections({
         </div>
       </div>
 
-      {/* Active category content */}
+      {/* =========================================
+          ACTIVE CATEGORY CONTENT
+          ========================================= */}
       <section className="communityActiveSection">
         <div className="communityActiveHeader">
           <div>
@@ -295,9 +345,11 @@ export default function CommunitySections({
             </h2>
 
             <p className="small">
-              {CATEGORY_DESCRIPTIONS[
-                activeCategory
-              ]}
+              {
+                CATEGORY_DESCRIPTIONS[
+                  activeCategory
+                ]
+              }
             </p>
           </div>
         </div>
@@ -345,32 +397,33 @@ export default function CommunitySections({
       </section>
 
       <style jsx>{`
-        .communitySectionChooser {
+        .communitySections {
           width: 100%;
         }
 
-        /* ================================
-           COMMUNITY HEADING
-           ================================ */
+        /* =========================================
+           COMMUNITY TITLE
+           ========================================= */
 
-        .communityTitleMenu {
+        .communityTitleArea {
           position: relative;
           display: inline-block;
-          z-index: 1000;
+          z-index: 99999;
         }
 
         .communityTitleButton {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 9px;
           padding: 0;
           border: 0;
           background: transparent;
           color: inherit;
           font: inherit;
-          font-size: clamp(2rem, 4vw, 3rem);
+          font-size: clamp(2rem, 5vw, 4rem);
           font-weight: 800;
           line-height: 1.05;
+          letter-spacing: -0.04em;
           cursor: pointer;
         }
 
@@ -380,34 +433,31 @@ export default function CommunitySections({
           justify-content: center;
           width: 28px;
           height: 28px;
-          border-radius: 50%;
-          font-size: 18px;
+          font-size: 20px;
           transition:
             transform 0.18s ease,
             background 0.18s ease;
-        }
-
-        .communityTitleButton:hover
-          .communityTitleArrow,
-        .communityTitleArrow.open {
-          background: rgba(15, 23, 42, 0.08);
         }
 
         .communityTitleArrow.open {
           transform: rotate(180deg);
         }
 
-        /* ================================
+        .communityTitleButton:hover
+          .communityTitleArrow {
+          background: rgba(15, 23, 42, 0.08);
+          border-radius: 50%;
+        }
+
+        /* =========================================
            TOP MENU
-           CSS HOVER = DESKTOP
-           STATE = MOBILE CLICK
-           ================================ */
+           ========================================= */
 
         .communityTopMenu {
           position: absolute;
-          top: 100%;
+          top: calc(100% + 2px);
           left: 0;
-          z-index: 10000;
+          z-index: 100000;
 
           width: min(
             410px,
@@ -417,62 +467,26 @@ export default function CommunitySections({
           padding: 10px;
 
           border: 1px solid
-            rgba(15, 23, 42, 0.12);
+            rgba(15, 23, 42, 0.14);
 
           border-radius: 16px;
 
-          background: rgba(255, 255, 255, 0.98);
+          background: #ffffff;
 
           box-shadow:
             0 18px 50px
-              rgba(15, 23, 42, 0.16);
+              rgba(15, 23, 42, 0.18);
 
-          backdrop-filter: blur(10px);
-
-          opacity: 0;
-          visibility: hidden;
-          pointer-events: none;
-
-          transform: translateY(4px);
-
-          transition:
-            opacity 0.16s ease,
-            visibility 0.16s ease,
-            transform 0.16s ease;
-        }
-
-        /*
-          Desktop:
-          cursor on Community OR menu itself
-          keeps menu visible.
-        */
-        @media (hover: hover) and (pointer: fine) {
-          .communityTitleMenu:hover
-            .communityTopMenu {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-            transform: translateY(0);
-          }
-        }
-
-        /*
-          Mobile / click:
-          menuOpen state controls visibility.
-        */
-        .communityTitleMenu.menuOpen
-          .communityTopMenu {
-          opacity: 1;
-          visibility: visible;
           pointer-events: auto;
-          transform: translateY(0);
         }
 
         .communityTopOption {
           display: flex;
           align-items: flex-start;
           gap: 12px;
+
           width: 100%;
+
           padding: 13px 14px;
 
           border: 1px solid transparent;
@@ -487,11 +501,11 @@ export default function CommunitySections({
 
         .communityTopOption:hover,
         .communityTopOption.active {
-          border-color:
-            rgba(15, 23, 42, 0.12);
-
           background:
             rgba(15, 23, 42, 0.05);
+
+          border-color:
+            rgba(15, 23, 42, 0.12);
         }
 
         .communityOptionIcon {
@@ -530,12 +544,12 @@ export default function CommunitySections({
         .communityTopOption small {
           font-size: 13px;
           line-height: 1.4;
-          opacity: 0.72;
+          opacity: 0.7;
         }
 
-        /* ================================
-           MAIN SECTION SWITCHER
-           ================================ */
+        /* =========================================
+           MAIN CATEGORY SELECTOR
+           ========================================= */
 
         .communityCategoryArea {
           margin-top: 26px;
@@ -547,7 +561,7 @@ export default function CommunitySections({
           border-radius: 18px;
 
           background:
-            rgba(255, 255, 255, 0.78);
+            rgba(255, 255, 255, 0.8);
         }
 
         .communityCategoryLabel {
@@ -575,6 +589,7 @@ export default function CommunitySections({
           display: grid;
           grid-template-columns:
             repeat(2, minmax(0, 1fr));
+
           gap: 12px;
         }
 
@@ -659,6 +674,10 @@ export default function CommunitySections({
           opacity: 0.68;
         }
 
+        /* =========================================
+           ACTIVE CONTENT
+           ========================================= */
+
         .communityActiveSection {
           margin-top: 30px;
         }
@@ -675,6 +694,10 @@ export default function CommunitySections({
         .communityActiveHeader p {
           margin-bottom: 0;
         }
+
+        /* =========================================
+           MOBILE
+           ========================================= */
 
         @media (max-width: 700px) {
           .communityTopMenu {
