@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CommunityPost from '@/components/CommunityPost';
 import SearchAndPaginate from '@/components/SearchAndPaginate';
 
-type Category = 'learning' | 'stocks-to-watch-next-week';
+type Category =
+  | 'learning'
+  | 'stocks-to-watch-next-week';
 
 type Post = {
   id: string;
@@ -21,7 +23,8 @@ type Post = {
 
 const CATEGORY_LABELS: Record<Category, string> = {
   learning: 'Learning',
-  'stocks-to-watch-next-week': 'Stocks to watch next week',
+  'stocks-to-watch-next-week':
+    'Stocks to watch next week',
 };
 
 const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
@@ -41,13 +44,20 @@ export default function CommunitySections({
 
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const closeTimer = useRef<
+    ReturnType<typeof setTimeout> | null
+  >(null);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   const learningPosts = posts.filter(
     post => post.category === 'learning'
   );
 
   const watchPosts = posts.filter(
     post =>
-      post.category === 'stocks-to-watch-next-week'
+      post.category ===
+      'stocks-to-watch-next-week'
   );
 
   const activePosts =
@@ -55,27 +65,102 @@ export default function CommunitySections({
       ? learningPosts
       : watchPosts;
 
+  function openMenu() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+
+    setMenuOpen(true);
+  }
+
+  function scheduleClose() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+    }
+
+    closeTimer.current = setTimeout(() => {
+      setMenuOpen(false);
+      closeTimer.current = null;
+    }, 300);
+  }
+
+  function toggleMenu() {
+    if (menuOpen) {
+      setMenuOpen(false);
+    } else {
+      openMenu();
+    }
+  }
+
   function selectCategory(category: Category) {
     setActiveCategory(category);
     setMenuOpen(false);
   }
 
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(
+          e.target as Node
+        )
+      ) {
+        setMenuOpen(false);
+      }
+    }
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener(
+      'mousedown',
+      handleOutsideClick
+    );
+
+    document.addEventListener(
+      'keydown',
+      handleEscape
+    );
+
+    return () => {
+      document.removeEventListener(
+        'mousedown',
+        handleOutsideClick
+      );
+
+      document.removeEventListener(
+        'keydown',
+        handleEscape
+      );
+
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+      }
+    };
+  }, []);
+
   return (
     <section className="communitySectionChooser">
-      {/* Community heading + hover/tap menu */}
+      {/* COMMUNITY TITLE + TOP MENU */}
       <div
+        ref={menuRef}
         className="communityTitleMenu"
-        onMouseEnter={() => setMenuOpen(true)}
-        onMouseLeave={() => setMenuOpen(false)}
+        onMouseEnter={openMenu}
+        onMouseLeave={scheduleClose}
       >
         <button
           type="button"
           className="communityTitleButton"
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          onClick={() => setMenuOpen(prev => !prev)}
+          onClick={toggleMenu}
         >
           <span>Community</span>
+
           <span
             className={`communityTitleArrow ${
               menuOpen ? 'open' : ''
@@ -90,6 +175,8 @@ export default function CommunitySections({
           <div
             className="communityTopMenu"
             role="menu"
+            onMouseEnter={openMenu}
+            onMouseLeave={scheduleClose}
           >
             <button
               type="button"
@@ -107,8 +194,9 @@ export default function CommunitySections({
                 📘
               </span>
 
-              <span>
+              <span className="communityOptionText">
                 <strong>Learning</strong>
+
                 <small>
                   Educational posts & chart lessons
                 </small>
@@ -134,10 +222,11 @@ export default function CommunitySections({
                 📈
               </span>
 
-              <span>
+              <span className="communityOptionText">
                 <strong>
                   Stocks to watch next week
                 </strong>
+
                 <small>
                   Weekly watchlist & setups
                 </small>
@@ -153,7 +242,7 @@ export default function CommunitySections({
         read and join the conversation.
       </p>
 
-      {/* Prominent category selector */}
+      {/* MAIN SECTION SWITCHER */}
       <div className="communityCategoryArea">
         <div className="communityCategoryLabel">
           <span className="communityCategoryEyebrow">
@@ -189,6 +278,7 @@ export default function CommunitySections({
 
             <span className="tabText">
               <strong>Learning</strong>
+
               <small>
                 Educational posts & lessons
               </small>
@@ -220,6 +310,7 @@ export default function CommunitySections({
               <strong>
                 Stocks to watch next week
               </strong>
+
               <small>
                 Weekly watchlist & setups
               </small>
@@ -228,7 +319,7 @@ export default function CommunitySections({
         </div>
       </div>
 
-      {/* Active section */}
+      {/* ACTIVE CATEGORY */}
       <section className="communityActiveSection">
         <div className="communityActiveHeader">
           <div>
@@ -241,7 +332,9 @@ export default function CommunitySections({
             </h2>
 
             <p className="small">
-              {CATEGORY_DESCRIPTIONS[activeCategory]}
+              {CATEGORY_DESCRIPTIONS[
+                activeCategory
+              ]}
             </p>
           </div>
         </div>
@@ -293,10 +386,12 @@ export default function CommunitySections({
           width: 100%;
         }
 
+        /* COMMUNITY HEADING */
         .communityTitleMenu {
           position: relative;
           display: inline-block;
           margin-bottom: 4px;
+          z-index: 1000;
         }
 
         .communityTitleButton {
@@ -318,8 +413,8 @@ export default function CommunitySections({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 26px;
-          height: 26px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           font-size: 18px;
           transition:
@@ -337,12 +432,13 @@ export default function CommunitySections({
           transform: rotate(180deg);
         }
 
+        /* TOP HOVER / CLICK MENU */
         .communityTopMenu {
           position: absolute;
-          top: calc(100% + 12px);
+          top: calc(100% + 4px);
           left: 0;
-          z-index: 100;
-          width: min(410px, calc(100vw - 32px));
+          z-index: 9999;
+          width: min(410px, calc(100vw - 28px));
           padding: 10px;
           border: 1px solid rgba(15, 23, 42, 0.12);
           border-radius: 16px;
@@ -377,11 +473,15 @@ export default function CommunitySections({
           align-items: center;
           justify-content: center;
           flex: 0 0 auto;
-          width: 34px;
-          height: 34px;
+          width: 36px;
+          height: 36px;
           border-radius: 10px;
           background: rgba(15, 23, 42, 0.07);
-          font-size: 17px;
+          font-size: 18px;
+        }
+
+        .communityOptionText {
+          min-width: 0;
         }
 
         .communityTopOption strong,
@@ -392,6 +492,7 @@ export default function CommunitySections({
         .communityTopOption strong {
           margin-bottom: 3px;
           font-size: 15px;
+          line-height: 1.3;
         }
 
         .communityTopOption small {
@@ -400,6 +501,7 @@ export default function CommunitySections({
           opacity: 0.72;
         }
 
+        /* MAIN CATEGORY SELECTOR */
         .communityCategoryArea {
           margin-top: 26px;
           padding: 20px;
@@ -489,6 +591,7 @@ export default function CommunitySections({
         .tabText strong {
           margin-bottom: 3px;
           font-size: 15px;
+          line-height: 1.3;
         }
 
         .tabText small {
@@ -497,6 +600,7 @@ export default function CommunitySections({
           opacity: 0.68;
         }
 
+        /* ACTIVE CONTENT */
         .communityActiveSection {
           margin-top: 30px;
         }
@@ -516,7 +620,10 @@ export default function CommunitySections({
 
         @media (max-width: 700px) {
           .communityTopMenu {
-            width: min(360px, calc(100vw - 28px));
+            width: min(
+              360px,
+              calc(100vw - 28px)
+            );
           }
 
           .communityCategoryArea {
