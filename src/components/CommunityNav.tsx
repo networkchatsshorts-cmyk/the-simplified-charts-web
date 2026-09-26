@@ -1,11 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+
+type CommunityCategory =
+  | 'learning'
+  | 'stocks-to-watch-next-week';
 
 export default function CommunityNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -17,7 +22,9 @@ export default function CommunityNav() {
     function handleOutsideClick(event: MouseEvent) {
       if (
         wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
+        !wrapperRef.current.contains(
+          event.target as Node
+        )
       ) {
         setOpen(false);
       }
@@ -29,17 +36,52 @@ export default function CommunityNav() {
       }
     }
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener(
+      'mousedown',
+      handleOutsideClick
+    );
+
+    document.addEventListener(
+      'keydown',
+      handleEscape
+    );
 
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener(
+        'mousedown',
+        handleOutsideClick
+      );
+
+      document.removeEventListener(
+        'keydown',
+        handleEscape
+      );
     };
   }, []);
 
-  function handleCategoryClick() {
+  function handleCategoryClick(
+    category: CommunityCategory
+  ) {
     setOpen(false);
+
+    const hash =
+      category === 'learning'
+        ? '#learning'
+        : '#stocks-to-watch-next-week';
+
+    // Already on Community:
+    // change only the hash, so there is NO route loading.
+    if (pathname === '/community') {
+      if (window.location.hash !== hash) {
+        window.location.hash = hash;
+      }
+
+      return;
+    }
+
+    // Coming from Home / Long Videos / Shorts:
+    // navigate normally to Community + selected section.
+    router.push(`/community${hash}`);
   }
 
   return (
@@ -54,41 +96,72 @@ export default function CommunityNav() {
         className="communityNavTrigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen(current => !current)}
+        onClick={() =>
+          setOpen(current => !current)
+        }
       >
         <span>Community</span>
-        <span className={`communityNavArrow ${open ? 'open' : ''}`} aria-hidden="true">
+
+        <span
+          className={`communityNavArrow ${
+            open ? 'open' : ''
+          }`}
+          aria-hidden="true"
+        >
           ▾
         </span>
       </button>
 
       <div
-        className={`communityNavMenu ${open ? 'visible' : ''}`}
+        className={`communityNavMenu ${
+          open ? 'visible' : ''
+        }`}
         role="menu"
       >
-        <Link
-          href="/community#learning"
+        <button
+          type="button"
+          className="communityNavItem"
           role="menuitem"
-          onClick={handleCategoryClick}
+          onClick={() =>
+            handleCategoryClick('learning')
+          }
         >
-          <span className="communityNavIcon">📘</span>
+          <span className="communityNavIcon">
+            📘
+          </span>
+
           <span className="communityNavText">
             <strong>Learning</strong>
-            <small>Educational posts & chart lessons</small>
+            <small>
+              Educational posts & chart lessons
+            </small>
           </span>
-        </Link>
+        </button>
 
-        <Link
-          href="/community#stocks-to-watch-next-week"
+        <button
+          type="button"
+          className="communityNavItem"
           role="menuitem"
-          onClick={handleCategoryClick}
+          onClick={() =>
+            handleCategoryClick(
+              'stocks-to-watch-next-week'
+            )
+          }
         >
-          <span className="communityNavIcon">📈</span>
-          <span className="communityNavText">
-            <strong>Stocks to watch next week</strong>
-            <small>Weekly watchlist & setups</small>
+          <span className="communityNavIcon">
+            📈
           </span>
-        </Link>
+
+          <span className="communityNavText">
+            <strong>
+              Stocks to watch next week
+            </strong>
+
+            <small>
+              Weekly watchlist & setups
+            </small>
+          </span>
+        </button>
       </div>
 
       <style>{`
@@ -126,7 +199,9 @@ export default function CommunityNav() {
         }
 
         .communityNavArrow.open {
-          transform: translateY(1px) rotate(180deg);
+          transform:
+            translateY(1px)
+            rotate(180deg);
         }
 
         .communityNavMenu {
@@ -139,12 +214,19 @@ export default function CommunityNav() {
           border: 1px solid rgba(15, 23, 42, 0.12);
           border-radius: 14px;
           background: #ffffff;
-          box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+          box-shadow:
+            0 16px 40px
+            rgba(15, 23, 42, 0.16);
+
           opacity: 0;
           visibility: hidden;
           pointer-events: none;
           transform: translateY(-4px);
-          transition: opacity 0.14s ease, visibility 0.14s ease, transform 0.14s ease;
+
+          transition:
+            opacity 0.14s ease,
+            visibility 0.14s ease,
+            transform 0.14s ease;
         }
 
         .communityNavMenu.visible {
@@ -154,21 +236,27 @@ export default function CommunityNav() {
           transform: translateY(0);
         }
 
-        .communityNavMenu a {
+        .communityNavItem {
           display: flex;
           align-items: flex-start;
           gap: 11px;
           width: 100%;
           box-sizing: border-box;
           padding: 11px 12px;
+          margin: 0;
+          border: 0;
           border-radius: 10px;
+          background: transparent;
           color: inherit;
-          text-decoration: none;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
         }
 
-        .communityNavMenu a:hover,
-        .communityNavMenu a:focus-visible {
-          background: rgba(15, 23, 42, 0.055);
+        .communityNavItem:hover,
+        .communityNavItem:focus-visible {
+          background:
+            rgba(15, 23, 42, 0.055);
           outline: none;
         }
 
@@ -180,7 +268,8 @@ export default function CommunityNav() {
           width: 34px;
           height: 34px;
           border-radius: 9px;
-          background: rgba(15, 23, 42, 0.07);
+          background:
+            rgba(15, 23, 42, 0.07);
           font-size: 17px;
         }
 
@@ -209,12 +298,19 @@ export default function CommunityNav() {
           .communityNavMenu {
             left: 50%;
             right: auto;
-            width: min(320px, calc(100vw - 28px));
-            transform: translate(-50%, -4px);
+            width:
+              min(
+                320px,
+                calc(100vw - 28px)
+              );
+
+            transform:
+              translate(-50%, -4px);
           }
 
           .communityNavMenu.visible {
-            transform: translate(-50%, 0);
+            transform:
+              translate(-50%, 0);
           }
         }
       `}</style>
