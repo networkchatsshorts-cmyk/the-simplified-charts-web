@@ -1,175 +1,332 @@
 import type { MetadataRoute } from 'next';
-import { getSupabaseAdmin, getSiteUrl } from '@/lib/supabase';
+import {
+  getSupabaseAdmin,
+  getSiteUrl,
+} from '@/lib/supabase';
+
+/*
+  Sitemap is generated at request time.
+
+  This is important because videos.updated_at and
+  community_posts.updated_at can change without a new deployment.
+*/
+export const dynamic = 'force-dynamic';
+
+type VideoRow = {
+  slug: string;
+  updated_at: string | null;
+  topic_id: string | null;
+};
+
+type TopicRow = {
+  id: string;
+  slug: string;
+  created_at: string | null;
+};
+
+type CommunityPostRow = {
+  slug: string;
+  updated_at: string | null;
+};
+
+function toDate(
+  value: string | null | undefined
+): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : date;
+}
+
+function getLatestDate(
+  values: Array<string | null | undefined>
+): Date {
+  const dates = values
+    .map(toDate)
+    .filter(
+      (date): date is Date => date !== null
+    );
+
+  if (dates.length === 0) {
+    return new Date(0);
+  }
+
+  return new Date(
+    Math.max(
+      ...dates.map((date) => date.getTime())
+    )
+  );
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const db = getSupabaseAdmin();
-
-  const [{ data: topics }, { data: videos }, { data: posts }] =
-    await Promise.all([
-      db
-        .from('topics')
-        .select('id,slug,created_at'),
-
-      db
-        .from('videos')
-        .select('slug,updated_at,topic_id')
-        .eq('published', true),
-
-      db
-        .from('community_posts')
-        .select('slug,updated_at')
-        .eq('published', true),
-    ]);
-
   const base = getSiteUrl();
 
+  const [
+    topicsResult,
+    videosResult,
+    postsResult,
+  ] = await Promise.all([
+    db
+      .from('topics')
+      .select(
+        'id,slug,created_at'
+      ),
+
+    db
+      .from('videos')
+      .select(
+        'slug,updated_at,topic_id'
+      )
+      .eq(
+        'published',
+        true
+      ),
+
+    db
+      .from('community_posts')
+      .select(
+        'slug,updated_at'
+      )
+      .eq(
+        'published',
+        true
+      ),
+  ]);
+
+  if (topicsResult.error) {
+    console.error(
+      'Sitemap topics query error:',
+      topicsResult.error
+    );
+  }
+
+  if (videosResult.error) {
+    console.error(
+      'Sitemap videos query error:',
+      videosResult.error
+    );
+  }
+
+  if (postsResult.error) {
+    console.error(
+      'Sitemap community posts query error:',
+      postsResult.error
+    );
+  }
+
+  const topics =
+    (topicsResult.data || []) as TopicRow[];
+
+  const videos =
+    (videosResult.data || []) as VideoRow[];
+
+  const posts =
+    (postsResult.data || []) as CommunityPostRow[];
+
   /*
-    -------------------------------------------------------
-    TOPIC LAST MODIFIED
-    -------------------------------------------------------
-    topics table does not have updated_at.
-
-    Therefore:
-    - If the topic has published videos, use the latest
-      videos.updated_at belonging to that topic.
-    - If it has no published videos, fall back to
-      topics.created_at.
+    ------------------------------------------------------------
+    Latest community update
+    ------------------------------------------------------------
   */
+  const latestCommunityDate =
+    getLatestDate(
+      posts.map(
+        (post) => post.updated_at
+      )
+    );
 
-  const topicLastModified = new Map<string, Date>();
+  /*
+    ------------------------------------------------------------
+    Latest video update
+    ------------------------------------------------------------
+  */
+  const latestVideoDate =
+    getLatestDate(
+      videos.map(
+        (video) => video.updated_at
+      )
+    );
 
-  for (const video of videos || []) {
-    if (!video.topic_id || !video.updated_at) {
-      continue;
-    }
+  /*
+    ------------------------------------------------------------
+    Homepage lastmod
 
-    const videoDate = new Date(video.updated_at);
+    Homepage depends on both:
+      - published videos
+      - published community posts
 
-    if (Number.isNaN(videoDate.getTime())) {
-      continue;
-    }
+    Therefore use the latest relevant update.
+    ------------------------------------------------------------
+  */
+  const homepageLastModified =
+    new Date(
+      Math.max(
+        latestVideoDate.getTime(),
+        latestCommunityDate.getTime()
+      )
+    );
 
-    const existingDate = topicLastModified.get(video.topic_id);
+  /*
+    ------------------------------------------------------------
+    Community listing lastmod
 
-    if (!existingDate || videoDate > existingDate) {
-      topicLastModified.set(video.topic_id, videoDate);
+    The /community page changes when its latest published
+    community post changes.
+    ------------------------------------------------------------
+  */
+  const communityLastModified =
+    latestCommunityDate.getTime() > 0
+      ? latestCommunityDate
+      : null;
+
+  /*
+    ------------------------------------------------------------
+    Topic lastmod
+
+    topics table has no updated_at.
+
+    So for each topic:
+      latest published related video updated_at
+      OR topic.created_at if there is no published video.
+    ------------------------------------------------------------
+  */
+  const topicLastModified =
+    new Map<string, Date>();
+
+  for (const topic of topics) {
+    const relatedVideoDates =
+      videos
+        .filter(
+          (video) =>
+            video.topic_id === topic.id
+        )
+        .map(
+          (video) =>
+            video.updated_at
+        );
+
+    const latestRelatedVideoDate =
+      getLatestDate(
+        relatedVideoDates
+      );
+
+    const topicCreatedDate =
+      toDate(
+        topic.created_at
+      );
+
+    if (
+      latestRelatedVideoDate.getTime() >
+      0
+    ) {
+      topicLastModified.set(
+        topic.id,
+        latestRelatedVideoDate
+      );
+    } else if (
+      topicCreatedDate
+    ) {
+      topicLastModified.set(
+        topic.id,
+        topicCreatedDate
+      );
     }
   }
 
   /*
-    -------------------------------------------------------
-    LATEST COMMUNITY UPDATE
-    -------------------------------------------------------
-    /community is a listing page, so use the most recent
-    published community post update time.
+    ------------------------------------------------------------
+    Build sitemap
+    ------------------------------------------------------------
   */
-
-  let latestCommunityUpdate: Date | null = null;
-
-  for (const post of posts || []) {
-    if (!post.updated_at) {
-      continue;
-    }
-
-    const postDate = new Date(post.updated_at);
-
-    if (Number.isNaN(postDate.getTime())) {
-      continue;
-    }
-
-    if (!latestCommunityUpdate || postDate > latestCommunityUpdate) {
-      latestCommunityUpdate = postDate;
-    }
-  }
+  const sitemapEntries: MetadataRoute.Sitemap =
+    [];
 
   /*
-    -------------------------------------------------------
-    LATEST HOMEPAGE UPDATE
-    -------------------------------------------------------
-    Homepage currently surfaces:
-    - published videos
-    - latest community post
-
-    So use the latest real update among those records.
+    Homepage
   */
+  sitemapEntries.push({
+    url: base,
+    lastModified:
+      homepageLastModified.getTime() > 0
+        ? homepageLastModified
+        : new Date(),
+  });
 
-  let latestHomepageUpdate: Date | null = latestCommunityUpdate;
+  /*
+    Community listing
+  */
+  sitemapEntries.push({
+    url: `${base}/community`,
+    ...(communityLastModified
+      ? {
+          lastModified:
+            communityLastModified,
+        }
+      : {}),
+  });
 
-  for (const video of videos || []) {
-    if (!video.updated_at) {
-      continue;
-    }
+  /*
+    Topic pages
+  */
+  for (const topic of topics) {
+    const lastModified =
+      topicLastModified.get(
+        topic.id
+      );
 
-    const videoDate = new Date(video.updated_at);
-
-    if (Number.isNaN(videoDate.getTime())) {
-      continue;
-    }
-
-    if (!latestHomepageUpdate || videoDate > latestHomepageUpdate) {
-      latestHomepageUpdate = videoDate;
-    }
-  }
-
-  return [
-    /*
-      -----------------------------------------------------
-      HOMEPAGE
-      -----------------------------------------------------
-    */
-    {
-      url: base,
-      ...(latestHomepageUpdate
-        ? {
-            lastModified: latestHomepageUpdate,
-          }
-        : {}),
-    },
-
-    /*
-      -----------------------------------------------------
-      COMMUNITY LISTING
-      -----------------------------------------------------
-    */
-    {
-      url: `${base}/community`,
-      ...(latestCommunityUpdate
-        ? {
-            lastModified: latestCommunityUpdate,
-          }
-        : {}),
-    },
-
-    /*
-      -----------------------------------------------------
-      TOPIC PAGES
-      -----------------------------------------------------
-    */
-    ...(topics || []).map((topic) => ({
+    sitemapEntries.push({
       url: `${base}/topics/${topic.slug}`,
-      lastModified:
-        topicLastModified.get(topic.id) ||
-        new Date(topic.created_at),
-    })),
+      ...(lastModified
+        ? {
+            lastModified,
+          }
+        : {}),
+    });
+  }
 
-    /*
-      -----------------------------------------------------
-      VIDEO PAGES
-      -----------------------------------------------------
-    */
-    ...(videos || []).map((video) => ({
+  /*
+    Individual video pages
+  */
+  for (const video of videos) {
+    const lastModified =
+      toDate(
+        video.updated_at
+      );
+
+    sitemapEntries.push({
       url: `${base}/videos/${video.slug}`,
-      lastModified: new Date(video.updated_at),
-    })),
+      ...(lastModified
+        ? {
+            lastModified,
+          }
+        : {}),
+    });
+  }
 
-    /*
-      -----------------------------------------------------
-      INDIVIDUAL COMMUNITY POSTS
-      -----------------------------------------------------
-    */
-    ...(posts || []).map((post) => ({
+  /*
+    Individual community posts
+  */
+  for (const post of posts) {
+    const lastModified =
+      toDate(
+        post.updated_at
+      );
+
+    sitemapEntries.push({
       url: `${base}/community/${post.slug}`,
-      lastModified: new Date(post.updated_at),
-    })),
-  ];
+      ...(lastModified
+        ? {
+            lastModified,
+          }
+        : {}),
+    });
+  }
+
+  return sitemapEntries;
 }
