@@ -6,9 +6,7 @@ export const metadata: Metadata = {
   title: 'Community Posts',
   description:
     'Community updates, charts, market observations and discussions from The Simplified Charts.',
-  alternates: {
-    canonical: '/community',
-  },
+  alternates: { canonical: '/community' },
 };
 
 export const revalidate = 120;
