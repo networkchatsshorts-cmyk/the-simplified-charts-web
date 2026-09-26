@@ -1,5 +1,6 @@
 import './globals.css';
 import Link from 'next/link';
+import CommunityNav from '@/components/CommunityNav';
 import type { Metadata } from 'next';
 import { getSiteUrl } from '@/lib/supabase';
 import RouteProgress from '@/components/RouteProgress';
@@ -67,51 +68,7 @@ export default function RootLayout({
                 Shorts
               </Link>
 
-              {/* Community dropdown */}
-              <details className="navCommunityDropdown">
-                <summary className="navCommunityTrigger">
-                  <span>Community</span>
-
-                  <span
-                    className="navCommunityArrow"
-                    aria-hidden="true"
-                  >
-                    ▾
-                  </span>
-                </summary>
-
-                <div className="navCommunityPanel">
-                  <Link href="/community#learning">
-                    <span className="navCommunityIcon">
-                      📘
-                    </span>
-
-                    <span className="navCommunityText">
-                      <strong>Learning</strong>
-
-                      <small>
-                        Educational posts & chart lessons
-                      </small>
-                    </span>
-                  </Link>
-
-                  <Link href="/community#stocks-to-watch-next-week">
-                    <span className="navCommunityIcon">
-                      📈
-                    </span>
-
-                    <span className="navCommunityText">
-                      <strong>
-                        Stocks to watch next week
-                      </strong>
-
-                      <small>
-                        Weekly watchlist & setups
-                      </small>
-                    </span>
-                  </Link>
-                </div>
-              </details>
+              <CommunityNav />
 
               <a
                 href={youtubeUrl}
@@ -146,190 +103,11 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
 
+        {/* Homepage/site identity structured data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(websiteSchema),
-          }}
-        />
-
-        {/* Community header dropdown styles.
-            Plain CSS — intentionally NOT styled-jsx. */}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-              .navCommunityDropdown {
-                position: relative;
-                display: inline-block;
-              }
-
-              .navCommunityTrigger {
-                display: inline-flex;
-                align-items: center;
-                gap: 5px;
-                padding: 0;
-                border: 0;
-                background: transparent;
-                color: inherit;
-                font: inherit;
-                font-size: inherit;
-                cursor: pointer;
-                list-style: none;
-              }
-
-              .navCommunityTrigger::-webkit-details-marker {
-                display: none;
-              }
-
-              .navCommunityArrow {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 11px;
-                line-height: 1;
-                transition: transform 0.18s ease;
-              }
-
-              .navCommunityDropdown[open]
-                .navCommunityArrow {
-                transform: rotate(180deg);
-              }
-
-              .navCommunityPanel {
-                position: absolute;
-                top: calc(100% + 8px);
-                right: 0;
-                z-index: 99999;
-
-                width: 330px;
-                padding: 8px;
-
-                border: 1px solid rgba(15, 23, 42, 0.12);
-                border-radius: 14px;
-
-                background: #ffffff;
-
-                box-shadow:
-                  0 16px 40px rgba(15, 23, 42, 0.16);
-
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none;
-
-                transform: translateY(-4px);
-
-                transition:
-                  opacity 0.16s ease,
-                  visibility 0.16s ease,
-                  transform 0.16s ease;
-              }
-
-              /* Desktop hover */
-              @media (hover: hover) and (pointer: fine) {
-                .navCommunityDropdown:hover
-                  .navCommunityPanel,
-                .navCommunityDropdown:focus-within
-                  .navCommunityPanel {
-                  opacity: 1;
-                  visibility: visible;
-                  pointer-events: auto;
-                  transform: translateY(0);
-                }
-              }
-
-              /* Mobile / click */
-              .navCommunityDropdown[open]
-                .navCommunityPanel {
-                opacity: 1;
-                visibility: visible;
-                pointer-events: auto;
-                transform: translateY(0);
-              }
-
-              .navCommunityPanel a {
-                display: flex;
-                align-items: flex-start;
-                gap: 11px;
-
-                width: 100%;
-                box-sizing: border-box;
-
-                padding: 11px 12px;
-
-                border-radius: 10px;
-
-                color: inherit;
-                text-decoration: none;
-
-                transition:
-                  background 0.16s ease;
-              }
-
-              .navCommunityPanel a:hover {
-                background:
-                  rgba(15, 23, 42, 0.055);
-              }
-
-              .navCommunityIcon {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-
-                flex: 0 0 auto;
-
-                width: 34px;
-                height: 34px;
-
-                border-radius: 9px;
-
-                background:
-                  rgba(15, 23, 42, 0.07);
-
-                font-size: 17px;
-              }
-
-              .navCommunityText {
-                min-width: 0;
-              }
-
-              .navCommunityText strong,
-              .navCommunityText small {
-                display: block;
-              }
-
-              .navCommunityText strong {
-                margin-bottom: 2px;
-                font-size: 14px;
-                line-height: 1.3;
-              }
-
-              .navCommunityText small {
-                font-size: 12px;
-                line-height: 1.4;
-                opacity: 0.68;
-              }
-
-              @media (max-width: 700px) {
-                .navCommunityPanel {
-                  left: 50%;
-                  right: auto;
-
-                  width: min(
-                    320px,
-                    calc(100vw - 28px)
-                  );
-
-                  transform:
-                    translate(-50%, -4px);
-                }
-
-                .navCommunityDropdown[open]
-                  .navCommunityPanel {
-                  transform:
-                    translate(-50%, 0);
-                }
-              }
-            `,
           }}
         />
       </body>
