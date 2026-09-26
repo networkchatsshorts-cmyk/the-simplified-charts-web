@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 type CommunityPostCategory =
@@ -9,11 +10,12 @@ type CommunityPostCategory =
 type Post = {
   id: string;
   title: string;
+  slug: string;
   body: string;
   image_urls: string[];
   created_at: string;
   youtube_post_url?: string | null;
-  category?: CommunityPostCategory;
+  category?: CommunityPostCategory | null;
 };
 
 type Comment = {
@@ -24,11 +26,17 @@ type Comment = {
   is_admin?: boolean;
 };
 
+type CommunityPostProps = {
+  post: Post;
+  linkTitle?: boolean;
+  headingTag?: 'h1' | 'h2' | 'h3';
+};
+
 export default function CommunityPost({
   post,
-}: {
-  post: Post;
-}) {
+  linkTitle = true,
+  headingTag = 'h2',
+}: CommunityPostProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [name, setName] = useState('');
@@ -96,10 +104,14 @@ export default function CommunityPost({
       ? 'STOCKS TO WATCH NEXT WEEK'
       : 'LEARNING';
 
+  const Heading = headingTag;
+
   return (
     <>
       <article className="communityPost card">
         <div className="cardbody">
+
+          {/* COMMUNITY SUBSECTION TAG */}
           <div className="communityCategoryTag">
             {categoryLabel}
           </div>
@@ -113,7 +125,19 @@ export default function CommunityPost({
             })}
           </div>
 
-          <h2>{post.title}</h2>
+          {/* POST TITLE */}
+          <Heading>
+            {linkTitle ? (
+              <Link
+                href={`/community/${post.slug}`}
+                className="communityPostTitleLink"
+              >
+                {post.title}
+              </Link>
+            ) : (
+              post.title
+            )}
+          </Heading>
 
           <div className="prose">
             {post.body}
@@ -264,6 +288,17 @@ export default function CommunityPost({
           font-weight: 800;
           line-height: 1;
           letter-spacing: 0.06em;
+        }
+
+        .communityPostTitleLink {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .communityPostTitleLink:hover {
+          text-decoration: underline;
+          text-decoration-thickness: 1px;
+          text-underline-offset: 3px;
         }
       `}</style>
     </>
