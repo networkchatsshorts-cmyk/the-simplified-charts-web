@@ -60,25 +60,77 @@ function videoRow(
 }
 
 /*
-  Normalize values before comparison.
+  ------------------------------------------------------------
+  VALUE NORMALIZATION
+  ------------------------------------------------------------
 
-  This prevents harmless null / undefined / array ordering
-  differences from causing unnecessary database writes.
+  Important:
+  Supabase/Postgres and YouTube can represent the same value
+  slightly differently.
+
+  Example:
+    2026-09-14T18:22:46.181Z
+    2026-09-14T18:22:46.181+00:00
+
+  These represent the same instant.
+
+  We normalize date/number/tag values before comparing them,
+  so harmless formatting differences do NOT create a DB UPDATE.
 */
-function normalizeComparable(value: any): any {
-  if (value === undefined) {
+function normalizeComparable(
+  field: string,
+  value: any
+): any {
+  if (value === undefined || value === null) {
     return null;
   }
 
-  if (Array.isArray(value)) {
-    return value.map(normalizeComparable);
+  if (field === 'published_at') {
+    const time = new Date(
+      String(value)
+    ).getTime();
+
+    return Number.isNaN(time)
+      ? String(value)
+      : time;
   }
 
-  if (value && typeof value === 'object') {
+  if (field === 'duration_seconds') {
+    const numeric = Number(value);
+
+    return Number.isNaN(numeric)
+      ? value
+      : numeric;
+  }
+
+  if (field === 'tags') {
+    if (!Array.isArray(value)) {
+      return value;
+    }
+
+    return value
+      .map((tag) => String(tag))
+      .sort();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      normalizeComparable('', item)
+    );
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null
+  ) {
     const result: Record<string, any> = {};
 
     for (const key of Object.keys(value).sort()) {
-      result[key] = normalizeComparable(value[key]);
+      result[key] =
+        normalizeComparable(
+          key,
+          value[key]
+        );
     }
 
     return result;
@@ -87,18 +139,27 @@ function normalizeComparable(value: any): any {
   return value;
 }
 
-function valuesEqual(a: any, b: any): boolean {
+function valuesEqual(
+  field: string,
+  a: any,
+  b: any
+): boolean {
   return (
-    JSON.stringify(normalizeComparable(a)) ===
-    JSON.stringify(normalizeComparable(b))
+    JSON.stringify(
+      normalizeComparable(field, a)
+    ) ===
+    JSON.stringify(
+      normalizeComparable(field, b)
+    )
   );
 }
 
 /*
-  These are the fields that the sync actually controls.
+  ------------------------------------------------------------
+  VIDEO DB FIELDS
+  ------------------------------------------------------------
 
-  If none of these fields changed, we do NOT UPDATE the row.
-  Therefore Supabase/Postgres will not refresh updated_at.
+  These are the fields controlled by YouTube sync.
 */
 const VIDEO_DB_FIELDS = [
   'youtube_video_id',
@@ -123,11 +184,56 @@ const VIDEO_DB_FIELDS = [
   'classification_locked',
 ] as const;
 
-function getVideoDbChanges(existing: any, row: any): string[] {
+/*
+  ------------------------------------------------------------
+  INDEXNOW FIELDS
+  ------------------------------------------------------------
+
+  Only changes that can affect the actual public video page
+  should trigger IndexNow.
+
+  Internal bookkeeping fields such as:
+    - original_topic_id
+    - classification_locked
+
+  must NOT trigger IndexNow.
+*/
+const INDEXNOW_FIELDS = [
+  'slug',
+  'title',
+  'description',
+  'thumbnail_url',
+  'published_at',
+  'duration_iso',
+  'duration_seconds',
+  'topic_id',
+  'content_type',
+  'published',
+  'seo_title',
+  'seo_description',
+] as const;
+
+/*
+  ------------------------------------------------------------
+  DATABASE CHANGE DETECTION
+  ------------------------------------------------------------
+*/
+function getVideoDbChanges(
+  existing: any,
+  row: any
+): string[] {
   const changedFields: string[] = [];
 
-  for (const field of VIDEO_DB_FIELDS) {
-    if (!valuesEqual(existing?.[field], row?.[field])) {
+  for (
+    const field of VIDEO_DB_FIELDS
+  ) {
+    if (
+      !valuesEqual(
+        field,
+        existing?.[field],
+        row?.[field]
+      )
+    ) {
       changedFields.push(field);
     }
   }
@@ -136,9 +242,9 @@ function getVideoDbChanges(existing: any, row: any): string[] {
 }
 
 /*
-  Keep IndexNow behavior compatible with the existing logic.
-
-  Only important page-level changes trigger IndexNow.
+  ------------------------------------------------------------
+  INDEXNOW CHANGE DETECTION
+  ------------------------------------------------------------
 */
 function getIndexNowChangedFields(
   existing: any,
@@ -147,61 +253,39 @@ function getIndexNowChangedFields(
   const changedFields: string[] = [];
 
   if (!existing) {
-    changedFields.push('new');
-    return changedFields;
+    return ['new'];
   }
 
-  if (existing.slug !== row.slug) {
-    changedFields.push('slug');
-  }
-
-  if (existing.title !== row.title) {
-    changedFields.push('title');
-  }
-
-  if (existing.description !== row.description) {
-    changedFields.push('description');
-  }
-
-  if (existing.thumbnail_url !== row.thumbnail_url) {
-    changedFields.push('thumbnail_url');
-  }
-
-  if (existing.published_at !== row.published_at) {
-    changedFields.push('published_at');
-  }
-
-  if (existing.duration_iso !== row.duration_iso) {
-    changedFields.push('duration_iso');
-  }
-
-  if (existing.duration_seconds !== row.duration_seconds) {
-    changedFields.push('duration_seconds');
-  }
-
-  if (existing.topic_id !== row.topic_id) {
-    changedFields.push('topic_id');
-  }
-
-  if (existing.content_type !== row.content_type) {
-    changedFields.push('content_type');
-  }
-
-  if (existing.published !== row.published) {
-    changedFields.push('published');
+  for (
+    const field of INDEXNOW_FIELDS
+  ) {
+    if (
+      !valuesEqual(
+        field,
+        existing?.[field],
+        row?.[field]
+      )
+    ) {
+      changedFields.push(field);
+    }
   }
 
   return changedFields;
 }
 
 /*
-  Save behavior:
+  ------------------------------------------------------------
+  SAVE VIDEO WITHOUT TOUCHING UNCHANGED ROWS
+  ------------------------------------------------------------
 
-  NEW       -> INSERT
-  CHANGED   -> UPDATE
-  UNCHANGED -> NO DATABASE WRITE
+  NEW:
+    INSERT
 
-  This is the core fix for sitemap lastmod.
+  CHANGED:
+    UPDATE only changed fields
+
+  UNCHANGED:
+    NO DATABASE WRITE
 */
 async function saveVideoWithoutTouchingUnchangedRows(
   db: ReturnType<typeof getSupabaseAdmin>,
@@ -209,14 +293,19 @@ async function saveVideoWithoutTouchingUnchangedRows(
   row: any
 ) {
   if (!existing) {
-    const { data, error } = await db
+    const {
+      data,
+      error,
+    } = await db
       .from('videos')
       .insert(row)
       .select('*')
       .single();
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
     return {
@@ -226,13 +315,19 @@ async function saveVideoWithoutTouchingUnchangedRows(
     };
   }
 
-  const changedFields = getVideoDbChanges(existing, row);
+  const changedFields =
+    getVideoDbChanges(
+      existing,
+      row
+    );
 
   /*
     Absolutely nothing changed.
-    Do not UPDATE.
+    Do not touch the row.
   */
-  if (changedFields.length === 0) {
+  if (
+    changedFields.length === 0
+  ) {
     return {
       action: 'unchanged' as const,
       data: existing,
@@ -240,15 +335,41 @@ async function saveVideoWithoutTouchingUnchangedRows(
     };
   }
 
-  const { data, error } = await db
+  /*
+    Update ONLY fields that actually changed.
+
+    This is safer than sending the whole row back to
+    Postgres on every sync.
+  */
+  const updatePayload: Record<
+    string,
+    any
+  > = {};
+
+  for (
+    const field of changedFields
+  ) {
+    updatePayload[field] =
+      row[field];
+  }
+
+  const {
+    data,
+    error,
+  } = await db
     .from('videos')
-    .update(row)
-    .eq('id', existing.id)
+    .update(updatePayload)
+    .eq(
+      'id',
+      existing.id
+    )
     .select('*')
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(
+      error.message
+    );
   }
 
   return {
@@ -262,27 +383,18 @@ async function saveVideoWithoutTouchingUnchangedRows(
   ============================================================
   SINGLE VIDEO SYNC
   ============================================================
-
-  Used by:
-  /api/admin/sync-video
-
-  Existing video:
-  - keeps current topic
-  - keeps manual classification
-  - updates only if actual metadata changed
-  - preserves old slug history when title changes
-
-  New video:
-  - uses requestedTopicId
-  - auto-classifies by duration
 */
 export async function syncVideoById(
   videoId: string,
   requestedTopicId: string | null
 ) {
-  const db = getSupabaseAdmin();
+  const db =
+    getSupabaseAdmin();
 
-  const video = await fetchVideo(videoId);
+  const video =
+    await fetchVideo(
+      videoId
+    );
 
   const {
     data: existing,
@@ -292,55 +404,97 @@ export async function syncVideoById(
     .select(
       'id,youtube_video_id,classification_locked,content_type,original_topic_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,seo_title,seo_description,published'
     )
-    .eq('youtube_video_id', video.id)
+    .eq(
+      'youtube_video_id',
+      video.id
+    )
     .maybeSingle();
 
   if (existingError) {
-    throw new Error(existingError.message);
+    throw new Error(
+      existingError.message
+    );
   }
 
   /*
-    Existing video:
-    keep its current topic.
+    Existing video keeps its topic.
 
-    New video:
-    use the topic selected in Admin.
+    New video uses the topic selected in Admin.
   */
   const topicId =
-    existing?.topic_id ||
-    requestedTopicId ||
-    null;
+    existing
+      ? existing.topic_id
+      : requestedTopicId;
 
-  const autoType: 'short' | 'long' =
-    video.durationSeconds <= shortThresholdSeconds
+  const autoType:
+    | 'short'
+    | 'long' =
+    video.durationSeconds <=
+    shortThresholdSeconds
       ? 'short'
       : 'long';
 
-  const contentType = existing?.classification_locked
-    ? existing.content_type || autoType
-    : autoType;
+  /*
+    Only an explicitly TRUE classification lock
+    protects content_type.
 
-  const row: any = videoRow(
-    video,
-    topicId,
-    contentType
-  );
+    NULL and FALSE both mean:
+    let automatic duration classification apply.
+  */
+  const contentType =
+    existing?.classification_locked ===
+    true
+      ? existing.content_type ||
+        autoType
+      : autoType;
 
-  row.original_topic_id =
-    existing?.original_topic_id ||
-    topicId ||
-    null;
+  const row: any =
+    videoRow(
+      video,
+      topicId,
+      contentType
+    );
 
-  if (existing?.classification_locked) {
-    row.content_type = existing.content_type;
-    row.classification_locked = true;
+  /*
+    IMPORTANT:
+    Existing bookkeeping values are preserved exactly.
+
+    We do NOT convert:
+      null -> false
+      null -> topicId
+
+    because doing that would create fake changes.
+  */
+  if (existing) {
+    row.original_topic_id =
+      existing.original_topic_id;
+
+    row.classification_locked =
+      existing.classification_locked;
+
+    if (
+      existing.classification_locked ===
+      true
+    ) {
+      row.content_type =
+        existing.content_type ||
+        autoType;
+    }
   } else {
-    row.classification_locked = false;
+    row.original_topic_id =
+      topicId;
+
+    row.classification_locked =
+      false;
   }
 
-  const dbChangedFields = existing
-    ? getVideoDbChanges(existing, row)
-    : ['new'];
+  const dbChangedFields =
+    existing
+      ? getVideoDbChanges(
+          existing,
+          row
+        )
+      : ['new'];
 
   const indexNowChangedFields =
     getIndexNowChangedFields(
@@ -349,11 +503,10 @@ export async function syncVideoById(
     );
 
   const shouldNotifyIndexNow =
-    indexNowChangedFields.length > 0;
+    indexNowChangedFields.length >
+      0 &&
+    row.published === true;
 
-  /*
-    Save only when required.
-  */
   const saveResult =
     await saveVideoWithoutTouchingUnchangedRows(
       db,
@@ -361,7 +514,8 @@ export async function syncVideoById(
       row
     );
 
-  const savedVideo = saveResult.data;
+  const savedVideo =
+    saveResult.data;
 
   if (!savedVideo) {
     throw new Error(
@@ -370,14 +524,14 @@ export async function syncVideoById(
   }
 
   /*
-    Title change can produce a new slug.
-    Save old slug in history for the existing
-    308 redirect mechanism.
+    ----------------------------------------------------------
+    SLUG HISTORY
+    ----------------------------------------------------------
   */
   const slugChanged =
-    !!existing &&
-    !!existing.slug &&
-    existing.slug !== row.slug;
+    !!existing?.slug &&
+    existing.slug !==
+      row.slug;
 
   if (slugChanged) {
     const {
@@ -386,12 +540,16 @@ export async function syncVideoById(
       .from('video_slug_history')
       .upsert(
         {
-          video_id: savedVideo.id,
-          old_slug: existing.slug,
-          new_slug: row.slug,
+          video_id:
+            savedVideo.id,
+          old_slug:
+            existing.slug,
+          new_slug:
+            row.slug,
         },
         {
-          onConflict: 'old_slug',
+          onConflict:
+            'old_slug',
         }
       );
 
@@ -404,22 +562,35 @@ export async function syncVideoById(
     console.info(
       '[VideoSync] Slug changed',
       {
-        videoId: video.id,
-        oldSlug: existing.slug,
-        newSlug: row.slug,
+        videoId:
+          video.id,
+        oldSlug:
+          existing.slug,
+        newSlug:
+          row.slug,
       }
     );
   }
 
   /*
-    IndexNow remains best-effort.
+    ----------------------------------------------------------
+    INDEXNOW
+    ----------------------------------------------------------
 
-    Unchanged video:
-    -> empty array
-    -> no submission
+    Only submit the current public URL when an actual
+    public-page change happened.
 
-    New/changed video:
-    -> current URL submitted
+    Unchanged:
+      []
+      -> no IndexNow request
+
+    Description change:
+      current URL
+      -> submit
+
+    Title/slug change:
+      new current URL
+      -> submit
   */
   const indexNow =
     await submitToIndexNow(
@@ -431,7 +602,9 @@ export async function syncVideoById(
     );
 
   /*
-    Diagnostic logs.
+    ----------------------------------------------------------
+    LOGGING
+    ----------------------------------------------------------
   */
   if (
     saveResult.action ===
@@ -440,8 +613,11 @@ export async function syncVideoById(
     console.info(
       '[VideoSync] New video inserted',
       {
-        videoId: video.id,
-        slug: row.slug,
+        videoId:
+          video.id,
+        slug:
+          row.slug,
+        indexNowChangedFields,
       }
     );
   } else if (
@@ -451,28 +627,35 @@ export async function syncVideoById(
     console.info(
       '[VideoSync] Video updated',
       {
-        videoId: video.id,
-        slug: row.slug,
+        videoId:
+          video.id,
+        slug:
+          row.slug,
         changedFields:
           dbChangedFields,
+        indexNowChangedFields,
       }
     );
   } else {
     console.info(
       '[VideoSync] Video unchanged',
       {
-        videoId: video.id,
-        slug: row.slug,
+        videoId:
+          video.id,
+        slug:
+          row.slug,
       }
     );
   }
 
   return {
-    video: savedVideo,
+    video:
+      savedVideo,
     slugChanged,
     oldSlug:
       existing?.slug || null,
-    newSlug: row.slug,
+    newSlug:
+      row.slug,
     changedFields:
       dbChangedFields,
     indexNow,
@@ -528,15 +711,91 @@ export async function syncPlaylistById(
   let topicId: string;
   let savedTopic: any;
 
+  /*
+    Update playlist metadata only when it actually changed.
+    topics currently has no updated_at problem, but this keeps
+    writes clean.
+  */
   if (existingTopic) {
+    const topicChanged =
+      !valuesEqual(
+        'name',
+        existingTopic.name,
+        playlist.title
+      ) ||
+      !valuesEqual(
+        'slug',
+        existingTopic.slug,
+        topicSlug
+      ) ||
+      !valuesEqual(
+        'description',
+        existingTopic.description,
+        playlist.description
+      ) ||
+      !valuesEqual(
+        'youtube_playlist_id',
+        existingTopic.youtube_playlist_id,
+        playlist.id
+      ) ||
+      !valuesEqual(
+        'youtube_playlist_url',
+        existingTopic.youtube_playlist_url,
+        `https://www.youtube.com/playlist?list=${playlist.id}`
+      );
+
+    if (topicChanged) {
+      const {
+        data,
+        error,
+      } = await db
+        .from('topics')
+        .update({
+          name:
+            playlist.title,
+          slug:
+            topicSlug,
+          description:
+            playlist.description,
+          youtube_playlist_id:
+            playlist.id,
+          youtube_playlist_url:
+            `https://www.youtube.com/playlist?list=${playlist.id}`,
+        })
+        .eq(
+          'id',
+          existingTopic.id
+        )
+        .select('*')
+        .single();
+
+      if (error || !data) {
+        throw new Error(
+          error?.message ||
+            'Could not update playlist category.'
+        );
+      }
+
+      savedTopic =
+        data;
+    } else {
+      savedTopic =
+        existingTopic;
+    }
+
+    topicId =
+      savedTopic.id;
+  } else {
     const {
       data,
       error,
     } = await db
       .from('topics')
-      .update({
-        name: playlist.title,
-        slug: topicSlug,
+      .insert({
+        name:
+          playlist.title,
+        slug:
+          topicSlug,
         description:
           playlist.description,
         youtube_playlist_id:
@@ -544,44 +803,6 @@ export async function syncPlaylistById(
         youtube_playlist_url:
           `https://www.youtube.com/playlist?list=${playlist.id}`,
       })
-      .eq(
-        'id',
-        existingTopic.id
-      )
-      .select('*')
-      .single();
-
-    if (error || !data) {
-      throw new Error(
-        error?.message ||
-          'Could not update playlist category.'
-      );
-    }
-
-    topicId = data.id;
-    savedTopic = data;
-  } else {
-    const {
-      data,
-      error,
-    } = await db
-      .from('topics')
-      .upsert(
-        {
-          name: playlist.title,
-          slug: topicSlug,
-          description:
-            playlist.description,
-          youtube_playlist_id:
-            playlist.id,
-          youtube_playlist_url:
-            `https://www.youtube.com/playlist?list=${playlist.id}`,
-        },
-        {
-          onConflict:
-            'slug',
-        }
-      )
       .select('*')
       .single();
 
@@ -592,14 +813,18 @@ export async function syncPlaylistById(
       );
     }
 
-    topicId = data.id;
-    savedTopic = data;
+    topicId =
+      data.id;
+
+    savedTopic =
+      data;
   }
 
   const currentVideoIds =
     new Set(
       items.map(
-        (x) => x.videoId
+        (item) =>
+          item.videoId
       )
     );
 
@@ -607,14 +832,16 @@ export async function syncPlaylistById(
   let skipped = 0;
   let archived = 0;
 
-  const errors: string[] = [];
+  const errors: string[] =
+    [];
 
   const indexNowUrls =
     new Set<string>();
 
   const ids =
     items.map(
-      (x) => x.videoId
+      (item) =>
+        item.videoId
     );
 
   const fetched =
@@ -624,10 +851,18 @@ export async function syncPlaylistById(
           ids
         )
       ).map(
-        (v) => [v.id, v]
+        (video) => [
+          video.id,
+          video,
+        ]
       )
     );
 
+  /*
+    ----------------------------------------------------------
+    PROCESS PLAYLIST VIDEOS
+    ----------------------------------------------------------
+  */
   for (
     const item of items
   ) {
@@ -651,10 +886,6 @@ export async function syncPlaylistById(
     }
 
     try {
-      /*
-        Playlist membership is the source of truth.
-        Manual Short/Long classification remains locked.
-      */
       const {
         data: existing,
         error: existingError,
@@ -684,11 +915,15 @@ export async function syncPlaylistById(
           : 'long';
 
       const contentType =
-        existing?.classification_locked
+        existing?.classification_locked ===
+        true
           ? existing.content_type ||
             autoType
           : autoType;
 
+      /*
+        Playlist membership is source of truth for topic_id.
+      */
       const row: any =
         videoRow(
           video,
@@ -696,40 +931,48 @@ export async function syncPlaylistById(
           contentType
         );
 
-      row.original_topic_id =
-        existing?.original_topic_id ||
-        topicId;
-
-      if (
-        existing?.classification_locked
-      ) {
-        row.content_type =
-          existing.content_type;
+      /*
+        Preserve existing bookkeeping values EXACTLY.
+      */
+      if (existing) {
+        row.original_topic_id =
+          existing.original_topic_id;
 
         row.classification_locked =
-          true;
+          existing.classification_locked;
+
+        if (
+          existing.classification_locked ===
+          true
+        ) {
+          row.content_type =
+            existing.content_type ||
+            autoType;
+        }
       } else {
+        row.original_topic_id =
+          topicId;
+
         row.classification_locked =
           false;
       }
 
-      /*
-        IndexNow logic remains unchanged conceptually:
-        new / important change -> notification.
-      */
+      const dbChangedFields =
+        existing
+          ? getVideoDbChanges(
+              existing,
+              row
+            )
+          : ['new'];
+
       const indexNowChangedFields =
         getIndexNowChangedFields(
           existing,
           row
         );
 
-      const shouldNotifyIndexNow =
-        indexNowChangedFields.length >
-        0;
-
       /*
-        IMPORTANT:
-        No write when unchanged.
+        Save only for real changes.
       */
       const saveResult =
         await saveVideoWithoutTouchingUnchangedRows(
@@ -740,8 +983,13 @@ export async function syncPlaylistById(
 
       synced++;
 
+      /*
+        IndexNow only for public page changes.
+      */
       if (
-        shouldNotifyIndexNow
+        indexNowChangedFields.length >
+          0 &&
+        row.published === true
       ) {
         indexNowUrls.add(
           `${SITE_URL}/videos/${row.slug}`
@@ -750,20 +998,6 @@ export async function syncPlaylistById(
 
       if (
         saveResult.action ===
-        'updated'
-      ) {
-        console.info(
-          '[VideoSync] Video updated',
-          {
-            youtubeVideoId:
-              video.id,
-            slug: row.slug,
-            changedFields:
-              saveResult.changedFields,
-          }
-        );
-      } else if (
-        saveResult.action ===
         'inserted'
       ) {
         console.info(
@@ -771,7 +1005,27 @@ export async function syncPlaylistById(
           {
             youtubeVideoId:
               video.id,
-            slug: row.slug,
+            slug:
+              row.slug,
+            changedFields:
+              dbChangedFields,
+            indexNowChangedFields,
+          }
+        );
+      } else if (
+        saveResult.action ===
+        'updated'
+      ) {
+        console.info(
+          '[VideoSync] Video updated',
+          {
+            youtubeVideoId:
+              video.id,
+            slug:
+              row.slug,
+            changedFields:
+              dbChangedFields,
+            indexNowChangedFields,
           }
         );
       } else {
@@ -780,7 +1034,8 @@ export async function syncPlaylistById(
           {
             youtubeVideoId:
               video.id,
-            slug: row.slug,
+            slug:
+              row.slug,
           }
         );
       }
@@ -802,12 +1057,17 @@ export async function syncPlaylistById(
   }
 
   /*
-    Archive videos no longer present in playlist.
-    This is a genuine state change, so UPDATE is expected.
+    ----------------------------------------------------------
+    ARCHIVE VIDEOS NO LONGER IN PLAYLIST
+    ----------------------------------------------------------
+
+    Do not repeatedly UPDATE already archived rows.
+    ----------------------------------------------------------
   */
   const {
     data: existingVideos,
-    error: existingVideosError,
+    error:
+      existingVideosError,
   } = await db
     .from('videos')
     .select(
@@ -831,38 +1091,38 @@ export async function syncPlaylistById(
     if (
       !currentVideoIds.has(
         video.youtube_video_id
-      )
+      ) &&
+      video.published !== false
     ) {
-      if (
-        video.published !== false
-      ) {
-        const {
-          error,
-        } = await db
-          .from('videos')
-          .update({
-            published: false,
-          })
-          .eq(
-            'id',
-            video.id
-          );
+      const {
+        error,
+      } = await db
+        .from('videos')
+        .update({
+          published:
+            false,
+        })
+        .eq(
+          'id',
+          video.id
+        );
 
-        if (!error) {
-          archived++;
-        } else if (
-          errors.length < 10
-        ) {
-          errors.push(
-            `${video.youtube_video_id}: ${error.message}`
-          );
-        }
+      if (!error) {
+        archived++;
+      } else if (
+        errors.length < 10
+      ) {
+        errors.push(
+          `${video.youtube_video_id}: ${error.message}`
+        );
       }
     }
   }
 
   /*
-    IndexNow is best-effort.
+    ----------------------------------------------------------
+    INDEXNOW
+    ----------------------------------------------------------
   */
   const indexNow =
     await submitToIndexNow(
@@ -944,7 +1204,8 @@ export async function syncAllPlaylists() {
 
     try {
       results.push({
-        name: topic.name,
+        name:
+          topic.name,
         ok: true,
         summary:
           await syncPlaylistById(
@@ -953,7 +1214,8 @@ export async function syncAllPlaylists() {
       });
     } catch (error) {
       results.push({
-        name: topic.name,
+        name:
+          topic.name,
         ok: false,
         error:
           error instanceof Error
@@ -1013,42 +1275,64 @@ export async function syncChannelShorts(
   const videos =
     await fetchVideosByIds(
       items.map(
-        (x) => x.videoId
+        (item) =>
+          item.videoId
       )
     );
 
   const {
-    data: shortsTopic,
-    error: topicError,
+    data: existingShortsTopic,
+    error: topicLookupError,
   } = await db
     .from('topics')
-    .upsert(
-      {
-        name: 'Shorts',
-        slug: 'shorts',
+    .select('*')
+    .eq(
+      'slug',
+      'shorts'
+    )
+    .maybeSingle();
+
+  if (topicLookupError) {
+    throw new Error(
+      topicLookupError.message
+    );
+  }
+
+  let shortsTopic =
+    existingShortsTopic;
+
+  if (!shortsTopic) {
+    const {
+      data,
+      error,
+    } = await db
+      .from('topics')
+      .insert({
+        name:
+          'Shorts',
+        slug:
+          'shorts',
         description:
           'Short-form videos from The Simplified Charts.',
-      },
-      {
-        onConflict: 'slug',
-      }
-    )
-    .select('*')
-    .single();
+      })
+      .select('*')
+      .single();
 
-  if (
-    topicError ||
-    !shortsTopic
-  ) {
-    throw new Error(
-      topicError?.message ||
-        'Could not create Shorts category.'
-    );
+    if (error || !data) {
+      throw new Error(
+        error?.message ||
+          'Could not create Shorts category.'
+      );
+    }
+
+    shortsTopic =
+      data;
   }
 
   const videoIds =
     videos.map(
-      (v) => v.id
+      (video) =>
+        video.id
     );
 
   const {
@@ -1079,7 +1363,8 @@ export async function syncChannelShorts(
   const existingByYoutubeId =
     new Map(
       (
-        existingRows || []
+        existingRows ||
+        []
       ).map(
         (row: any) => [
           row.youtube_video_id,
@@ -1090,16 +1375,19 @@ export async function syncChannelShorts(
 
   const candidates =
     videos.filter(
-      (v) =>
-        v.durationSeconds <=
+      (video) =>
+        video.durationSeconds <=
         shortThresholdSeconds
     );
 
   let synced = 0;
   let skipped = 0;
-  let newlyClassified = 0;
+  let newlyClassified =
+    0;
 
-  const errors: string[] = [];
+  const errors: string[] =
+    [];
+
   const indexNowUrls =
     new Set<string>();
 
@@ -1114,10 +1402,11 @@ export async function syncChannelShorts(
         );
 
       /*
-        Manual long classification remains protected.
+        A manually locked long video stays long.
       */
       if (
-        existing?.classification_locked &&
+        existing?.classification_locked ===
+          true &&
         existing.content_type ===
           'long'
       ) {
@@ -1132,19 +1421,31 @@ export async function syncChannelShorts(
           'short'
         );
 
-      row.original_topic_id =
-        existing?.original_topic_id ||
-        null;
+      /*
+        Preserve bookkeeping values exactly.
+      */
+      if (existing) {
+        row.original_topic_id =
+          existing.original_topic_id;
 
-      row.classification_locked =
-        existing?.classification_locked ??
-        false;
+        row.classification_locked =
+          existing.classification_locked;
 
-      if (
-        !existing ||
-        existing.content_type !==
-          'short'
-      ) {
+        if (
+          existing.classification_locked ===
+          true
+        ) {
+          row.content_type =
+            existing.content_type ||
+            'short';
+        }
+      } else {
+        row.original_topic_id =
+          null;
+
+        row.classification_locked =
+          false;
+
         newlyClassified++;
       }
 
@@ -1154,14 +1455,6 @@ export async function syncChannelShorts(
           row
         );
 
-      const shouldNotifyIndexNow =
-        indexNowChangedFields.length >
-        0;
-
-      /*
-        Important:
-        unchanged Shorts do not get updated.
-      */
       const saveResult =
         await saveVideoWithoutTouchingUnchangedRows(
           db,
@@ -1172,7 +1465,9 @@ export async function syncChannelShorts(
       synced++;
 
       if (
-        shouldNotifyIndexNow
+        indexNowChangedFields.length >
+          0 &&
+        row.published === true
       ) {
         indexNowUrls.add(
           `${SITE_URL}/videos/${row.slug}`
@@ -1181,20 +1476,6 @@ export async function syncChannelShorts(
 
       if (
         saveResult.action ===
-        'updated'
-      ) {
-        console.info(
-          '[ShortsSync] Video updated',
-          {
-            youtubeVideoId:
-              video.id,
-            slug: row.slug,
-            changedFields:
-              saveResult.changedFields,
-          }
-        );
-      } else if (
-        saveResult.action ===
         'inserted'
       ) {
         console.info(
@@ -1202,7 +1483,25 @@ export async function syncChannelShorts(
           {
             youtubeVideoId:
               video.id,
-            slug: row.slug,
+            slug:
+              row.slug,
+            indexNowChangedFields,
+          }
+        );
+      } else if (
+        saveResult.action ===
+        'updated'
+      ) {
+        console.info(
+          '[ShortsSync] Video updated',
+          {
+            youtubeVideoId:
+              video.id,
+            slug:
+              row.slug,
+            changedFields:
+              saveResult.changedFields,
+            indexNowChangedFields,
           }
         );
       } else {
@@ -1211,7 +1510,8 @@ export async function syncChannelShorts(
           {
             youtubeVideoId:
               video.id,
-            slug: row.slug,
+            slug:
+              row.slug,
           }
         );
       }
@@ -1258,8 +1558,16 @@ export async function syncChannelShorts(
 
 /*
   ============================================================
-  REFRESH SHORTS METADATA
+  SHORTS METADATA REFRESH
   ============================================================
+
+  This function used to UPDATE every Short every time.
+
+  That was another possible source of updated_at changes.
+
+  Now:
+    unchanged metadata -> NO UPDATE
+    changed metadata   -> UPDATE
 */
 export async function syncShortsMetadata() {
   const db =
@@ -1293,10 +1601,6 @@ export async function syncShortsMetadata() {
     };
   }
 
-  /*
-    Fetch current database metadata too.
-    Only UPDATE when metadata actually changed.
-  */
   const {
     data: shorts,
     error: shortsError,
@@ -1316,6 +1620,21 @@ export async function syncShortsMetadata() {
     );
   }
 
+  const METADATA_FIELDS = [
+    'title',
+    'description',
+    'thumbnail_url',
+    'published_at',
+    'duration_iso',
+    'duration_seconds',
+    'channel_id',
+    'channel_title',
+    'tags',
+    'category_id',
+    'seo_title',
+    'seo_description',
+  ] as const;
+
   let synced = 0;
   let skipped = 0;
 
@@ -1332,92 +1651,67 @@ export async function syncShortsMetadata() {
           row.youtube_video_id
         );
 
-      const nextValues =
-        {
-          title:
-            video.title,
-          description:
-            video.description,
-          thumbnail_url:
-            video.thumbnailUrl,
-          published_at:
-            video.publishedAt,
-          duration_iso:
-            video.durationIso,
-          duration_seconds:
-            video.durationSeconds,
-          channel_id:
-            video.channelId,
-          channel_title:
-            video.channelTitle,
-          tags:
-            video.tags,
-          category_id:
-            video.categoryId,
-          seo_title:
-            video.title,
-          seo_description:
-            video.description?.slice(
-              0,
-              160
-            ),
-        };
+      const nextValues: Record<
+        string,
+        any
+      > = {
+        title:
+          video.title,
+        description:
+          video.description,
+        thumbnail_url:
+          video.thumbnailUrl,
+        published_at:
+          video.publishedAt,
+        duration_iso:
+          video.durationIso,
+        duration_seconds:
+          video.durationSeconds,
+        channel_id:
+          video.channelId,
+        channel_title:
+          video.channelTitle,
+        tags:
+          video.tags,
+        category_id:
+          video.categoryId,
+        seo_title:
+          video.title,
+        seo_description:
+          video.description?.slice(
+            0,
+            160
+          ),
+      };
 
-      const changed =
-        !valuesEqual(
-          row.title,
-          nextValues.title
-        ) ||
-        !valuesEqual(
-          row.description,
-          nextValues.description
-        ) ||
-        !valuesEqual(
-          row.thumbnail_url,
-          nextValues.thumbnail_url
-        ) ||
-        !valuesEqual(
-          row.published_at,
-          nextValues.published_at
-        ) ||
-        !valuesEqual(
-          row.duration_iso,
-          nextValues.duration_iso
-        ) ||
-        !valuesEqual(
-          row.duration_seconds,
-          nextValues.duration_seconds
-        ) ||
-        !valuesEqual(
-          row.channel_id,
-          nextValues.channel_id
-        ) ||
-        !valuesEqual(
-          row.channel_title,
-          nextValues.channel_title
-        ) ||
-        !valuesEqual(
-          row.tags,
-          nextValues.tags
-        ) ||
-        !valuesEqual(
-          row.category_id,
-          nextValues.category_id
-        ) ||
-        !valuesEqual(
-          row.seo_title,
-          nextValues.seo_title
-        ) ||
-        !valuesEqual(
-          row.seo_description,
-          nextValues.seo_description
-        );
+      const changedFields:
+        string[] = [];
+
+      for (
+        const field of
+          METADATA_FIELDS
+      ) {
+        if (
+          !valuesEqual(
+            field,
+            row[field],
+            nextValues[field]
+          )
+        ) {
+          changedFields.push(
+            field
+          );
+        }
+      }
 
       /*
-        Nothing changed:
-        no UPDATE -> updated_at stays untouched.
+        No metadata changed.
+        Do not touch updated_at.
       */
-      if (!changed) {
+      if (
+        changedFields.length ===
+        0
+      ) {
         synced++;
 
         console.info(
@@ -1431,12 +1725,24 @@ export async function syncShortsMetadata() {
         continue;
       }
 
+      const updatePayload:
+        Record<string, any> =
+        {};
+
+      for (
+        const field of
+          changedFields
+      ) {
+        updatePayload[field] =
+          nextValues[field];
+      }
+
       const {
         error,
       } = await db
         .from('videos')
         .update(
-          nextValues
+          updatePayload
         )
         .eq(
           'id',
@@ -1456,6 +1762,7 @@ export async function syncShortsMetadata() {
         {
           youtubeVideoId:
             row.youtube_video_id,
+          changedFields,
         }
       );
     } catch (error) {
