@@ -3,6 +3,13 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
 import { makeCommunitySlug } from '@/lib/community-slug';
 
+const ALLOWED_CATEGORIES = [
+  'learning',
+  'stocks-to-watch-next-week',
+] as const;
+
+type CommunityPostCategory = (typeof ALLOWED_CATEGORIES)[number];
+
 export async function POST(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json(
@@ -15,19 +22,27 @@ export async function POST(req: Request) {
 
   const title = String(form.get('title') || '').trim();
   const body = String(form.get('body') || '').trim();
-  const rawCategory = String(form.get('category') || 'learning').trim();
-  const category = rawCategory === 'stocks-to-watch-next-week'
-    ? rawCategory
-    : rawCategory === 'learning'
-      ? rawCategory
-      : null;
   const youtubePostUrl =
     String(form.get('youtubePostUrl') || '').trim() || null;
   const published = form.get('published') !== 'false';
+  const rawCategory = String(form.get('category') || 'learning').trim();
+
+  const category = ALLOWED_CATEGORIES.includes(
+    rawCategory as CommunityPostCategory
+  )
+    ? (rawCategory as CommunityPostCategory)
+    : null;
 
   if (!title || !body) {
     return NextResponse.json(
       { error: 'Title and post body are required.' },
+      { status: 400 }
+    );
+  }
+
+  if (!category) {
+    return NextResponse.json(
+      { error: 'Invalid community post subsection.' },
       { status: 400 }
     );
   }
@@ -43,8 +58,6 @@ export async function POST(req: Request) {
 
   const db = getSupabaseAdmin();
 
-  // Community post URLs are title-based and permanent.
-  // Reject a duplicate slug instead of changing the URL to include an ID.
   const { data: existingPost, error: slugCheckError } = await db
     .from('community_posts')
     .select('id')
@@ -92,7 +105,6 @@ export async function POST(req: Request) {
       .toLowerCase();
 
     const path = `posts/${crypto.randomUUID()}.${ext}`;
-
     const bytes = new Uint8Array(await entry.arrayBuffer());
 
     const { error: uploadError } = await db.storage
@@ -122,6 +134,7 @@ export async function POST(req: Request) {
       title,
       slug,
       body,
+      category,
       image_urls: imageUrls,
       youtube_post_url: youtubePostUrl,
       published,
