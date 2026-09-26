@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CommunityPost from '@/components/CommunityPost';
 import SearchAndPaginate from '@/components/SearchAndPaginate';
 
@@ -18,7 +18,7 @@ type Post = {
   youtube_post_url?: string | null;
   created_at: string;
   updated_at?: string | null;
-  category: Category;
+  category?: Category | null;
 };
 
 const CATEGORY_LABELS: Record<Category, string> = {
@@ -34,7 +34,7 @@ const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
     'Weekly watchlist posts covering stocks and setups worth tracking.',
 };
 
-function categoryFromHash(): Category {
+function getCategoryFromHash(): Category {
   if (
     typeof window !== 'undefined' &&
     window.location.hash ===
@@ -52,9 +52,39 @@ export default function CommunitySections({
   posts: Post[];
 }) {
   const [activeCategory, setActiveCategory] =
-    useState<Category>(() =>
-      categoryFromHash()
-    );
+    useState<Category>(() => getCategoryFromHash());
+
+  useEffect(() => {
+    function handleHashChange() {
+      setActiveCategory(getCategoryFromHash());
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (
+      hash === '#learning' ||
+      hash === '#stocks-to-watch-next-week'
+    ) {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(
+          'community-section-switcher'
+        );
+
+        target?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+    }
+  }, []);
 
   function selectCategory(category: Category) {
     setActiveCategory(category);
@@ -73,40 +103,18 @@ export default function CommunitySections({
     }
   }
 
-  useEffect(() => {
-    function handleHashChange() {
-      setActiveCategory(categoryFromHash());
-    }
-
-    window.addEventListener(
-      'hashchange',
-      handleHashChange
-    );
-
-    return () => {
-      window.removeEventListener(
-        'hashchange',
-        handleHashChange
-      );
-    };
-  }, []);
-
-  const learningPosts = posts.filter(
-    post => post.category === 'learning'
-  );
-
-  const watchPosts = posts.filter(
-    post =>
-      post.category ===
-      'stocks-to-watch-next-week'
+  const activePosts = useMemo(
+    () =>
+      posts.filter(
+        post =>
+          (post.category || 'learning') ===
+          activeCategory
+      ),
+    [posts, activeCategory]
   );
 
   return (
     <section className="communitySections">
-      {/* =========================================
-          COMMUNITY HEADING
-          No arrow here.
-          ========================================= */}
       <section className="hero">
         <div className="eyebrow">
           The Simplified Charts
@@ -121,10 +129,8 @@ export default function CommunitySections({
         </p>
       </section>
 
-      {/* =========================================
-          ONLY TWO SECTION CARDS
-          ========================================= */}
       <div
+        id="community-section-switcher"
         className="communityCategoryTabs"
         role="tablist"
         aria-label="Community sections"
@@ -144,23 +150,17 @@ export default function CommunitySections({
             selectCategory('learning')
           }
         >
-          <span className="tabIcon">
-            📘
-          </span>
+          <span className="tabIcon">📘</span>
 
           <span className="tabText">
             <strong>Learning</strong>
-
             <small>
               Educational posts & lessons
             </small>
           </span>
 
           {activeCategory === 'learning' && (
-            <span
-              className="selectedBadge"
-              aria-label="Selected"
-            >
+            <span className="selectedBadge">
               ✓
             </span>
           )}
@@ -185,15 +185,12 @@ export default function CommunitySections({
             )
           }
         >
-          <span className="tabIcon">
-            📈
-          </span>
+          <span className="tabIcon">📈</span>
 
           <span className="tabText">
             <strong>
               Stocks to watch next week
             </strong>
-
             <small>
               Weekly watchlist & setups
             </small>
@@ -201,50 +198,38 @@ export default function CommunitySections({
 
           {activeCategory ===
             'stocks-to-watch-next-week' && (
-            <span
-              className="selectedBadge"
-              aria-label="Selected"
-            >
+            <span className="selectedBadge">
               ✓
             </span>
           )}
         </button>
       </div>
 
-      {/* =========================================
-          LEARNING CONTENT
-          ========================================= */}
-      <section
-        id="learning"
-        className={`communityActiveSection ${
-          activeCategory === 'learning'
-            ? 'sectionVisible'
-            : 'sectionHidden'
-        }`}
-        aria-hidden={
-          activeCategory !== 'learning'
-        }
-      >
+      <section className="communityActiveSection">
         <div className="communityActiveHeader">
           <div>
             <div className="eyebrow">
-              Learning
+              {CATEGORY_LABELS[activeCategory]}
             </div>
 
-            <h2>Learning</h2>
+            <h2>
+              {CATEGORY_LABELS[activeCategory]}
+            </h2>
 
             <p className="small">
-              {CATEGORY_DESCRIPTIONS.learning}
+              {CATEGORY_DESCRIPTIONS[activeCategory]}
             </p>
           </div>
         </div>
 
         <SearchAndPaginate
           placeholder="Search community post"
-          emptyMessage="No Learning posts yet."
+          emptyMessage={`No ${CATEGORY_LABELS[
+            activeCategory
+          ].toLowerCase()} posts yet.`}
           itemsLabel="Posts"
         >
-          {learningPosts.map(post => {
+          {activePosts.map(post => {
             const searchText = [
               post.title,
               post.body,
@@ -263,92 +248,15 @@ export default function CommunitySections({
             );
           })}
 
-          {!learningPosts.length && (
+          {!activePosts.length && (
             <div className="card">
               <div className="cardbody">
                 <h3>
-                  No Learning posts yet
+                  No posts in this section yet
                 </h3>
 
                 <p className="small">
                   New posts will appear here.
-                </p>
-              </div>
-            </div>
-          )}
-        </SearchAndPaginate>
-      </section>
-
-      {/* =========================================
-          STOCKS TO WATCH NEXT WEEK
-          ========================================= */}
-      <section
-        id="stocks-to-watch-next-week"
-        className={`communityActiveSection ${
-          activeCategory ===
-          'stocks-to-watch-next-week'
-            ? 'sectionVisible'
-            : 'sectionHidden'
-        }`}
-        aria-hidden={
-          activeCategory !==
-          'stocks-to-watch-next-week'
-        }
-      >
-        <div className="communityActiveHeader">
-          <div>
-            <div className="eyebrow">
-              Stocks to watch next week
-            </div>
-
-            <h2>
-              Stocks to watch next week
-            </h2>
-
-            <p className="small">
-              {
-                CATEGORY_DESCRIPTIONS[
-                  'stocks-to-watch-next-week'
-                ]
-              }
-            </p>
-          </div>
-        </div>
-
-        <SearchAndPaginate
-          placeholder="Search community post"
-          emptyMessage="No Stocks to watch next week posts yet."
-          itemsLabel="Posts"
-        >
-          {watchPosts.map(post => {
-            const searchText = [
-              post.title,
-              post.body,
-            ]
-              .filter(Boolean)
-              .join(' ');
-
-            return (
-              <div
-                key={post.id}
-                data-search-item
-                data-search-text={searchText}
-              >
-                <CommunityPost post={post} />
-              </div>
-            );
-          })}
-
-          {!watchPosts.length && (
-            <div className="card">
-              <div className="cardbody">
-                <h3>
-                  No Stocks to watch next week posts yet
-                </h3>
-
-                <p className="small">
-                  New weekly watchlist posts will
-                  appear here.
                 </p>
               </div>
             </div>
@@ -361,43 +269,27 @@ export default function CommunitySections({
           width: 100%;
         }
 
-        /* =========================================
-           TWO CATEGORY CARDS
-           ========================================= */
-
         .communityCategoryTabs {
           display: grid;
-          grid-template-columns:
-            repeat(2, minmax(0, 1fr));
-
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
-
           margin-bottom: 30px;
+          scroll-margin-top: 90px;
         }
 
         .communityCategoryTab {
           position: relative;
-
           display: flex;
           align-items: center;
           gap: 13px;
-
           min-height: 84px;
-
           padding: 16px 54px 16px 18px;
-
-          border: 1px solid
-            rgba(15, 23, 42, 0.12);
-
+          border: 1px solid rgba(15, 23, 42, 0.12);
           border-radius: 15px;
-
           background: #ffffff;
           color: inherit;
-
           text-align: left;
-
           cursor: pointer;
-
           transition:
             transform 0.16s ease,
             border-color 0.16s ease,
@@ -407,27 +299,13 @@ export default function CommunitySections({
 
         .communityCategoryTab:hover {
           transform: translateY(-1px);
-
-          box-shadow:
-            0 8px 24px
-              rgba(15, 23, 42, 0.08);
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
         }
 
-        /* =========================================
-           SELECTED = LIGHT YELLOW
-           ========================================= */
-
         .communityCategoryTab.active {
-          border-color:
-            rgba(202, 138, 4, 0.48);
-
-          background:
-            rgba(250, 204, 21, 0.12);
-
-          box-shadow:
-            0 8px 26px
-              rgba(202, 138, 4, 0.10);
-
+          border-color: rgba(202, 138, 4, 0.50);
+          background: rgba(250, 204, 21, 0.13);
+          box-shadow: 0 8px 26px rgba(202, 138, 4, 0.10);
           transform: translateY(-1px);
         }
 
@@ -435,24 +313,16 @@ export default function CommunitySections({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-
           flex: 0 0 auto;
-
           width: 42px;
           height: 42px;
-
           border-radius: 11px;
-
-          background:
-            rgba(15, 23, 42, 0.07);
-
+          background: rgba(15, 23, 42, 0.07);
           font-size: 20px;
         }
 
-        .communityCategoryTab.active
-          .tabIcon {
-          background:
-            rgba(250, 204, 21, 0.20);
+        .communityCategoryTab.active .tabIcon {
+          background: rgba(250, 204, 21, 0.22);
         }
 
         .tabText {
@@ -466,7 +336,6 @@ export default function CommunitySections({
 
         .tabText strong {
           margin-bottom: 3px;
-
           font-size: 15px;
           line-height: 1.3;
         }
@@ -474,54 +343,28 @@ export default function CommunitySections({
         .tabText small {
           font-size: 13px;
           line-height: 1.4;
-
           opacity: 0.68;
         }
 
-        /* =========================================
-           SELECTED CHECK
-           ========================================= */
-
         .selectedBadge {
           position: absolute;
-
           top: 50%;
           right: 17px;
-
           display: inline-flex;
           align-items: center;
           justify-content: center;
-
           width: 29px;
           height: 29px;
-
           border-radius: 50%;
-
-          background:
-            rgba(15, 23, 42, 0.92);
-
+          background: rgba(15, 23, 42, 0.92);
           color: #ffffff;
-
           font-size: 15px;
           font-weight: 800;
-
           transform: translateY(-50%);
         }
 
-        /* =========================================
-           CONTENT
-           ========================================= */
-
         .communityActiveSection {
           margin-top: 30px;
-        }
-
-        .communityActiveSection.sectionVisible {
-          display: block;
-        }
-
-        .communityActiveSection.sectionHidden {
-          display: none;
         }
 
         .communityActiveHeader {
@@ -537,24 +380,16 @@ export default function CommunitySections({
           margin-bottom: 0;
         }
 
-        /* =========================================
-           MOBILE
-           ========================================= */
-
         @media (max-width: 700px) {
           .communityCategoryTabs {
             grid-template-columns: 1fr;
-
             gap: 10px;
-
             margin-bottom: 24px;
           }
 
           .communityCategoryTab {
             min-height: 74px;
-
-            padding:
-              14px 50px 14px 15px;
+            padding: 14px 50px 14px 15px;
           }
 
           .tabIcon {
