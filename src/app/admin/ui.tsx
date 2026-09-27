@@ -211,12 +211,8 @@ export default function AdminClient() {
         ? ' Old URL now permanently redirects to the new URL.'
         : '';
 
-      const indexMessage = d.indexNow?.submitted === 1
-        ? ` IndexNow HTTP ${d.indexNow.statuses?.[0]?.status ?? 'unknown'}.`
-        : '';
-
       setStatus(
-        `Video synced: ${d.video?.title || 'Video'}.${redirectMessage}${indexMessage}`
+        `Video synced: ${d.video?.title || 'Video'}.${redirectMessage}`
       );
 
       setSingleVideoUrl('');
@@ -255,48 +251,6 @@ export default function AdminClient() {
         error instanceof Error
           ? error.message
           : 'Subscriber count sync failed.'
-      );
-    }
-  }
-
-  async function submitVideoToIndexNow(video: Video) {
-    setStatus(`Submitting "${video.title}" to IndexNow...`);
-
-    try {
-      const r = await fetch('/api/admin/indexnow', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          url: `${window.location.origin}/videos/${video.slug}`,
-        }),
-      });
-
-      const d = await r.json();
-
-      if (!r.ok) {
-        return setStatus(
-          d.error || 'IndexNow submission failed.'
-        );
-      }
-
-      const result = d.indexNow || {};
-
-      setStatus(
-        result.submitted === 1
-          ? `IndexNow: ${video.title} submitted successfully (HTTP ${
-              result.statuses?.[0]?.status ?? 'unknown'
-            }).`
-          : `IndexNow: ${video.title} was not submitted.${
-              result.errors?.length
-                ? ` ${result.errors[0]}`
-                : ''
-            }`
-      );
-    } catch (error) {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'IndexNow submission failed.'
       );
     }
   }
@@ -1092,12 +1046,6 @@ export default function AdminClient() {
                     Open ↗
                   </a>{' '}
 
-                  <button
-                    className="btn"
-                    onClick={() => submitVideoToIndexNow(v)}
-                  >
-                    Submit Request to Index Now
-                  </button>
                 </td>
               </tr>
             ))}
