@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/auth';
-import { getSupabaseAdmin } from '@/lib/supabase';
-import { extractVideoId, fetchVideo } from '@/lib/youtube';
+import { getSupabaseAdmin, getSiteUrl } from '@/lib/supabase';
 import { makeSlug } from '@/lib/slug';
+import {
+  saveVideoWithoutTouchingUnchangedRows,
+} from '@/lib/playlist-sync';
 import { recordVideoSlugHistory } from '@/lib/video-slug-history';
 
 export async function POST(req: Request) {
@@ -13,52 +15,86 @@ export async function POST(req: Request) {
     );
   }
 
-  const { url } = await req.json();
-  const videoId = extractVideoId(url || '');
+  const {
+    video,
+    topicId,
+    analysisIntro,
+    keyPoints,
+    seoDescription,
+  } = await req.json();
 
-  if (!videoId) {
+  if (!video?.id || !video?.title) {
     return NextResponse.json(
-      { error: 'Invalid YouTube Short URL.' },
+      { error: 'Missing video data.' },
       { status: 400 }
     );
   }
 
   try {
-    const video = await fetchVideo(videoId);
     const db = getSupabaseAdmin();
 
-    const shorts = await db
-      .from('topics')
-      .upsert(
-        {
-          name: 'Shorts',
-          slug: 'shorts',
-          description:
-            'Short-form videos from The Simplified Charts.',
-        },
-        { onConflict: 'slug' }
-      )
-      .select('*')
-      .single();
-
-    if (shorts.error || !shorts.data) {
-      throw new Error(
-        shorts.error?.message ||
-          'Could not create Shorts category.'
-      );
-    }
-
-    const { data: existing, error: existingError } = await db
-      .from('videos')
-      .select('id,slug')
-      .eq('youtube_video_id', video.id)
-      .maybeSingle();
+    const { data: existing, error: existingError } =
+      await db
+        .from('videos')
+        .select(
+          'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,analysis_intro,key_points,published,original_topic_id,classification_locked'
+        )
+        .eq('youtube_video_id', video.id)
+        .maybeSingle();
 
     if (existingError) {
       throw new Error(existingError.message);
     }
 
     const slug = makeSlug(video.title, video.id);
+    const autoType =
+      (video.durationSeconds ?? 0) <= 180
+        ? 'short'
+        : 'long';
+
+    const row: any = {
+      youtube_video_id: video.id,
+      slug,
+      title: video.title,
+      description: video.description ?? null,
+      youtube_url: `https://www.youtube.com/watch?v=${video.id}`,
+      thumbnail_url: video.thumbnailUrl ?? null,
+      published_at: video.publishedAt ?? null,
+      duration_iso: video.durationIso ?? null,
+      duration_seconds: video.durationSeconds ?? null,
+      channel_id: video.channelId ?? null,
+      channel_title: video.channelTitle ?? null,
+      tags: video.tags ?? [],
+      category_id: video.categoryId ?? null,
+      topic_id: topicId ?? existing?.topic_id ?? null,
+      content_type: existing?.classification_locked
+        ? existing.content_type || autoType
+        : autoType,
+      seo_title: video.title,
+      seo_description:
+        seoDescription ??
+        video.description?.slice(0, 160) ??
+        null,
+      analysis_intro:
+        analysisIntro !== undefined
+          ? analysisIntro
+          : existing?.analysis_intro ?? null,
+      key_points:
+        Array.isArray(keyPoints)
+          ? keyPoints
+          : existing?.key_points ?? [],
+      published: true,
+      original_topic_id:
+        existing?.original_topic_id ??
+        topicId ??
+        null,
+      classification_locked:
+        existing?.classification_locked ?? false,
+    };
+
+    if (!existing && !row.topic_id) {
+      row.topic_id = null;
+    }
 
     if (existing && existing.slug !== slug) {
       await recordVideoSlugHistory(
@@ -69,43 +105,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data, error } = await db
-      .from('videos')
-      .upsert(
-        {
-          youtube_video_id: video.id,
-          slug,
-          title: video.title,
-          description: video.description,
-          youtube_url: `https://www.youtube.com/watch?v=${video.id}`,
-          thumbnail_url: video.thumbnailUrl,
-          published_at: video.publishedAt,
-          duration_iso: video.durationIso,
-          duration_seconds: video.durationSeconds,
-          channel_id: video.channelId,
-          channel_title: video.channelTitle,
-          tags: video.tags,
-          category_id: video.categoryId,
-          topic_id: shorts.data.id,
-          seo_title: video.title,
-          seo_description: video.description?.slice(0, 160),
-          published: true,
-          content_type: 'short',
-          classification_locked: true,
-          original_topic_id: null,
-        },
-        { onConflict: 'youtube_video_id' }
-      )
-      .select('*')
-      .single();
-
-    if (error || !data) {
-      throw new Error(error?.message || 'Could not save Short.');
-    }
+    const saved =
+      await saveVideoWithoutTouchingUnchangedRows(
+        db,
+        row,
+        existing
+      );
 
     return NextResponse.json({
-      video: data,
-      message: 'Short added successfully.',
+      video: saved.data,
+      changed: saved.changedFields.length > 0,
+      changedFields: saved.changedFields,
+      url: `${getSiteUrl()}/videos/${saved.data.slug}`,
     });
   } catch (error) {
     return NextResponse.json(
@@ -113,7 +124,7 @@ export async function POST(req: Request) {
         error:
           error instanceof Error
             ? error.message
-            : 'Short import failed.',
+            : 'Could not save video.',
       },
       { status: 400 }
     );
