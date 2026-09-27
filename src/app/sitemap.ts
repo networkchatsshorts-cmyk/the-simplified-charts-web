@@ -38,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       db
         .from('videos')
         .select(
-          'slug,published_at,updated_at,topic_id'
+          'slug,published_at,updated_at,topic_id,content_type'
         )
         .eq('published', true),
       db
@@ -84,14 +84,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   videos.forEach((video, index) => {
     if (!video.topic_id) return;
 
-    const current = topicLastModified.get(video.topic_id) || null;
-    const candidate = videoLastModified[index] || null;
+    const current =
+      topicLastModified.get(video.topic_id) || null;
+
+    const candidate =
+      videoLastModified[index] || null;
 
     if (
       candidate &&
       (!current || candidate.getTime() > current.getTime())
     ) {
-      topicLastModified.set(video.topic_id, candidate);
+      topicLastModified.set(
+        video.topic_id,
+        candidate
+      );
     }
   });
 
@@ -109,6 +115,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ])
   );
 
+  // Latest long-form video for /videos listing page.
+  const latestLongVideo = latestDate(
+    videos
+      .filter(
+        (video) => video.content_type === 'long'
+      )
+      .flatMap((video) => [
+        video.updated_at,
+        video.published_at,
+      ])
+  );
+
+  // Latest Short for /shorts listing page.
+  const latestShortVideo = latestDate(
+    videos
+      .filter(
+        (video) => video.content_type === 'short'
+      )
+      .flatMap((video) => [
+        video.updated_at,
+        video.published_at,
+      ])
+  );
+
   const latestHomepageChange = latestDate([
     latestVideo?.toISOString(),
     latestCommunityPost?.toISOString(),
@@ -118,24 +148,59 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: base,
       ...(latestHomepageChange
-        ? { lastModified: latestHomepageChange }
+        ? {
+            lastModified:
+              latestHomepageChange,
+          }
         : {}),
     },
+
     {
       url: `${base}/community`,
       ...(latestCommunityPost
-        ? { lastModified: latestCommunityPost }
+        ? {
+            lastModified:
+              latestCommunityPost,
+          }
         : {}),
     },
+
+    // Canonical long-video listing page.
+    // /long-videos is a redirect to /videos and is intentionally
+    // NOT included in the sitemap.
+    {
+      url: `${base}/videos`,
+      ...(latestLongVideo
+        ? {
+            lastModified:
+              latestLongVideo,
+          }
+        : {}),
+    },
+
+    // Canonical Shorts listing page.
+    {
+      url: `${base}/shorts`,
+      ...(latestShortVideo
+        ? {
+            lastModified:
+              latestShortVideo,
+          }
+        : {}),
+    },
+
     ...topics.map((topic) => ({
       url: `${base}/topics/${topic.slug}`,
       ...(topicLastModified.get(topic.id)
         ? {
             lastModified:
-              topicLastModified.get(topic.id) as Date,
+              topicLastModified.get(
+                topic.id
+              ) as Date,
           }
         : {}),
     })),
+
     ...videos.map((video, index) => ({
       url: `${base}/videos/${video.slug}`,
       ...(videoLastModified[index]
@@ -145,6 +210,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           }
         : {}),
     })),
+
     ...posts.map((post) => ({
       url: `${base}/community/${post.slug}`,
       ...(safeDate(post.updated_at) ||
