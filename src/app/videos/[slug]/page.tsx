@@ -49,10 +49,7 @@ const getVideo = cache(async (slug: string) => {
     .maybeSingle();
 
   if (historyError) {
-    console.error(
-      'Video slug history lookup error:',
-      historyError
-    );
+    console.error('Video slug history lookup error:', historyError);
     return null;
   }
 
@@ -60,10 +57,7 @@ const getVideo = cache(async (slug: string) => {
     return null;
   }
 
-  const {
-    data: currentVideo,
-    error: currentVideoError,
-  } = await db
+  const { data: currentVideo, error: currentVideoError } = await db
     .from('videos')
     .select('*')
     .eq('id', history.video_id)
@@ -71,10 +65,7 @@ const getVideo = cache(async (slug: string) => {
     .maybeSingle();
 
   if (currentVideoError) {
-    console.error(
-      'Current video lookup error:',
-      currentVideoError
-    );
+    console.error('Current video lookup error:', currentVideoError);
     return null;
   }
 
@@ -92,10 +83,7 @@ async function attachTopic(
   let topic = null;
 
   if (video.topic_id) {
-    const {
-      data: topicData,
-      error: topicError,
-    } = await db
+    const { data: topicData, error: topicError } = await db
       .from('topics')
       .select(
         'id,name,slug,description,youtube_playlist_id'
@@ -104,10 +92,7 @@ async function attachTopic(
       .maybeSingle();
 
     if (topicError) {
-      console.error(
-        'Topic lookup error:',
-        topicError
-      );
+      console.error('Topic lookup error:', topicError);
     } else {
       topic = topicData;
     }
@@ -168,16 +153,12 @@ export default async function VideoPage({
     notFound();
   }
 
-  // Preserve the existing old-slug → current-slug redirect.
   if (video.slug !== slug) {
-    permanentRedirect(
-      `/videos/${video.slug}`
-    );
+    permanentRedirect(`/videos/${video.slug}`);
   }
 
   const siteUrl = getSiteUrl();
-  const pageUrl =
-    `${siteUrl}/videos/${video.slug}`;
+  const pageUrl = `${siteUrl}/videos/${video.slug}`;
 
   const embedUrl = youtubeEmbedUrl(
     video.youtube_video_id
@@ -194,25 +175,19 @@ export default async function VideoPage({
     thumbnailUrl: video.thumbnail_url
       ? [video.thumbnail_url]
       : [],
+    uploadDate: video.published_at || undefined,
 
-    // Original YouTube publication date.
-    uploadDate:
-      video.published_at || undefined,
-
-    // Actual DB/content modification date.
-    // Falls back to publication date when unavailable.
+    // Added: tells search engines when the video page/content
+    // was last actually modified.
     dateModified:
       video.updated_at ||
       video.published_at ||
       undefined,
 
-    duration:
-      video.duration_iso || undefined,
-    contentUrl:
-      video.youtube_url || undefined,
+    duration: video.duration_iso || undefined,
+    contentUrl: video.youtube_url || undefined,
     embedUrl,
     url: pageUrl,
-
     publisher: {
       '@type': 'Organization',
       name: 'The Simplified Charts',
@@ -235,9 +210,7 @@ export default async function VideoPage({
           {video.published_at && (
             <div className="videoDate">
               Uploaded{' '}
-              {formatDate(
-                video.published_at
-              )}
+              {formatDate(video.published_at)}
             </div>
           )}
         </section>
@@ -317,13 +290,8 @@ export default async function VideoPage({
 
                 <ul>
                   {video.key_points.map(
-                    (
-                      point: string,
-                      index: number
-                    ) => (
-                      <li
-                        key={`${point}-${index}`}
-                      >
+                    (point: string, index: number) => (
+                      <li key={`${point}-${index}`}>
                         {point}
                       </li>
                     )
@@ -337,8 +305,7 @@ export default async function VideoPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html:
-            JSON.stringify(videoSchema),
+          __html: JSON.stringify(videoSchema),
         }}
       />
     </main>
