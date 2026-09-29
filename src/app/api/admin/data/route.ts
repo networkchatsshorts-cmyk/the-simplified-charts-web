@@ -2,48 +2,120 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
 
-export async function GET() {
+const VIDEO_FIELDS =
+  'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked,seo_description,seo_description_managed,analysis_intro';
+
+const VIDEO_BASIC_FIELDS =
+  'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked';
+
+export async function GET(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const db = getSupabaseAdmin();
+  const section = new URL(req.url).searchParams.get('section');
 
-  const [topicsRes, videosRes, postsRes, commentsRes] = await Promise.all([
-    db.from('topics').select('*').order('name'),
-    db
+  if (!section) {
+    return NextResponse.json(
+      { error: 'Missing admin data section.' },
+      { status: 400 }
+    );
+  }
+
+  if (section === 'sync' || section === 'playlists') {
+    const { data, error } = await db
+      .from('topics')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (section === 'sync') {
+      return NextResponse.json({ topics: data ?? [] });
+    }
+
+    const { data: counts, error: countsError } = await db
       .from('videos')
-      .select(
-        'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked,seo_description,seo_description_managed,analysis_intro'
-      )
+      .select('topic_id');
+
+    if (countsError) {
+      return NextResponse.json({ error: countsError.message }, { status: 500 });
+    }
+
+    const videoCounts: Record<string, number> = {};
+    for (const row of counts ?? []) {
+      const topicId = row.topic_id as string | null;
+      if (topicId) videoCounts[topicId] = (videoCounts[topicId] || 0) + 1;
+    }
+
+    return NextResponse.json({ topics: data ?? [], videoCounts });
+  }
+
+  if (section === 'classification') {
+    const { data, error } = await db
+      .from('videos')
+      .select(VIDEO_BASIC_FIELDS)
       .order('published_at', { ascending: false })
-      .limit(2000),
-    db
+      .limit(2000);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ videos: data ?? [] });
+  }
+
+  if (section === 'videos') {
+    const { data, error } = await db
+      .from('videos')
+      .select(VIDEO_FIELDS)
+      .order('published_at', { ascending: false })
+      .limit(2000);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ videos: data ?? [] });
+  }
+
+  if (section === 'posts' || section === 'reply') {
+    const { data, error } = await db
       .from('community_posts')
-      .select('id,title,body,published,created_at')
+      .select('id,title,body,published,created_at,category')
       .order('created_at', { ascending: false })
-      .limit(200),
-    db
+      .limit(200);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ posts: data ?? [] });
+  }
+
+  if (section === 'comments') {
+    const { data, error } = await db
       .from('community_comments')
       .select('id,post_id,display_name,body,published,created_at,is_admin')
       .order('created_at', { ascending: false })
-      .limit(1000),
-  ]);
+      .limit(1000);
 
-  const error =
-    topicsRes.error ||
-    videosRes.error ||
-    postsRes.error ||
-    commentsRes.error;
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ comments: data ?? [] });
   }
 
-  return NextResponse.json({
-    topics: topicsRes.data ?? [],
-    videos: videosRes.data ?? [],
-    posts: postsRes.data ?? [],
-    comments: commentsRes.data ?? [],
-  });
+  if (section === 'create-post') {
+    return NextResponse.json({});
+  }
+
+  return NextResponse.json(
+    { error: `Unknown admin data section: ${section}` },
+    { status: 400 }
+  );
 }

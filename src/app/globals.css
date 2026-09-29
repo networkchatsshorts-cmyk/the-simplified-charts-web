@@ -1655,3 +1655,79 @@ textarea {
     padding: 24px;
   }
 }
+
+.adminAccordionIntro {
+  margin: 0 0 18px;
+}
+
+.adminAccordion {
+  margin: 0 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.adminAccordionSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.adminAccordionSummary::-webkit-details-marker {
+  display: none;
+}
+
+.adminAccordionCopy {
+  display: grid;
+  gap: 3px;
+}
+
+.adminAccordionCopy > strong {
+  font-size: 1.05rem;
+}
+
+.adminAccordionCopy .small {
+  opacity: 0.72;
+}
+
+.adminAccordionIcon {
+  font-size: 1.55rem;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.adminAccordion[open] .adminAccordionIcon {
+  transform: rotate(45deg);
+}
+
+.adminAccordionBody {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.adminAccordionBody > .section {
+  margin: 0;
+  padding: 0;
+}
+
+.adminAccordionBody > h2:first-child,
+.adminAccordionBody > .topicHeader:first-child,
+.adminAccordionBody > .section > h2:first-child,
+.adminAccordionBody > .section > .topicHeader:first-child {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .adminAccordionSummary {
+    padding: 16px;
+  }
+
+  .adminAccordionBody {
+    padding: 0 14px 16px;
+  }
+}

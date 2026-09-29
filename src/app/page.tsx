@@ -43,7 +43,7 @@ export default async function HomePage() {
     db
       .from('videos')
       .select(
-        'id,title,slug,thumbnail_url,published_at,seo_description,topic_id'
+        'id,title,slug,thumbnail_url,published_at,seo_description,seo_description_managed,topic_id'
       )
       .eq('published', true)
       .eq('content_type', 'long')
@@ -54,7 +54,7 @@ export default async function HomePage() {
     db
       .from('videos')
       .select(
-        'id,title,slug,thumbnail_url,published_at,seo_description,topic_id'
+        'id,title,slug,thumbnail_url,published_at,seo_description,seo_description_managed,topic_id'
       )
       .eq('published', true)
       .eq('content_type', 'short')
@@ -332,8 +332,9 @@ export default async function HomePage() {
                 <h3>{video.title}</h3>
 
                 <p className="small">
-                  {video.seo_description ||
-                    'Long-form stock market analysis from The Simplified Charts.'}
+                  {video.seo_description_managed && video.seo_description
+                    ? video.seo_description
+                    : ''}
                 </p>
 
                 {video.published_at && (
@@ -401,8 +402,9 @@ export default async function HomePage() {
                 <h3>{video.title}</h3>
 
                 <p className="small">
-                  {video.seo_description ||
-                    'Short-form market analysis from The Simplified Charts.'}
+                  {video.seo_description_managed && video.seo_description
+                    ? video.seo_description
+                    : ''}
                 </p>
 
                 {video.published_at && (

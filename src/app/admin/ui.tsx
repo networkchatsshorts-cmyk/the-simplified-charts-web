@@ -1,6 +1,7 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type Topic = {
   id: string;
@@ -46,8 +47,58 @@ type Comment = {
   is_admin: boolean;
 };
 
+function AdminAccordion({
+  eyebrow,
+  title,
+  description,
+  section,
+  loading,
+  loaded,
+  error,
+  onOpen,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  section: string;
+  loading?: boolean;
+  loaded?: boolean;
+  error?: string;
+  onOpen: (section: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      className="adminAccordion"
+      onToggle={event => {
+        if ((event.currentTarget as HTMLDetailsElement).open) {
+          onOpen(section);
+        }
+      }}
+    >
+      <summary className="adminAccordionSummary">
+        <span className="adminAccordionCopy">
+          {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+          <strong>{title}</strong>
+          {description && <span className="small">{description}</span>}
+        </span>
+        <span className="adminAccordionIcon" aria-hidden="true">+</span>
+      </summary>
+      <div className="adminAccordionBody">
+        {loading && !loaded ? (
+          <div className="card"><div className="cardbody"><p className="small">Loading this section…</p></div></div>
+        ) : error ? (
+          <div className="card"><div className="cardbody"><p className="small">{error}</p><button className="btn" onClick={() => onOpen(section)}>Retry</button></div></div>
+        ) : children}
+      </div>
+    </details>
+  );
+}
+
 export default function AdminClient() {
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [topicVideoCounts, setTopicVideoCounts] = useState<Record<string, number>>({});
   const [videos, setVideos] = useState<Video[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -71,21 +122,80 @@ export default function AdminClient() {
   const [analysisIntroDraft, setAnalysisIntroDraft] = useState('');
   const [savingVideoContent, setSavingVideoContent] = useState(false);
 
-  async function load() {
-    const r = await fetch('/api/admin/data', { cache: 'no-store' });
-    if (!r.ok) return;
+  type AdminSectionKey =
+    | 'sync'
+    | 'classification'
+    | 'playlists'
+    | 'create-post'
+    | 'posts'
+    | 'reply'
+    | 'comments'
+    | 'videos';
 
-    const d = await r.json();
+  const [sectionLoaded, setSectionLoaded] = useState<Partial<Record<AdminSectionKey, boolean>>>({});
+  const [sectionLoading, setSectionLoading] = useState<Partial<Record<AdminSectionKey, boolean>>>({});
+  const [sectionErrors, setSectionErrors] = useState<Partial<Record<AdminSectionKey, string>>>({});
 
-    setTopics(d.topics || []);
-    setVideos(d.videos || []);
-    setPosts(d.posts || []);
-    setComments(d.comments || []);
+  async function loadSection(section: AdminSectionKey, force = false) {
+    if (!force && sectionLoaded[section]) return;
+
+    setSectionLoading(prev => ({ ...prev, [section]: true }));
+    setSectionErrors(prev => ({ ...prev, [section]: '' }));
+
+    try {
+      const r = await fetch(`/api/admin/data?section=${encodeURIComponent(section)}`, { cache: 'no-store' });
+      const d = await r.json().catch(() => ({}));
+
+      if (!r.ok) {
+        throw new Error(d.error || `Could not load ${section}.`);
+      }
+
+      if (section === 'sync' || section === 'playlists') {
+        setTopics(d.topics || []);
+      }
+
+      if (section === 'playlists') {
+        setTopicVideoCounts(d.videoCounts || {});
+      }
+
+      if (section === 'classification' || section === 'videos') {
+        setVideos(prev => {
+          const existing = new Map(prev.map(v => [v.id, v]));
+          return (d.videos || []).map((video: Partial<Video>) => ({
+            ...(existing.get(video.id || '') || {}),
+            ...video,
+          })) as Video[];
+        });
+      }
+
+      if (section === 'posts' || section === 'reply') {
+        setPosts(d.posts || []);
+      }
+
+      if (section === 'comments') {
+        setComments(d.comments || []);
+      }
+
+      setSectionLoaded(prev => ({ ...prev, [section]: true }));
+    } catch (error) {
+      setSectionErrors(prev => ({
+        ...prev,
+        [section]: error instanceof Error ? error.message : `Could not load ${section}.`,
+      }));
+    } finally {
+      setSectionLoading(prev => ({ ...prev, [section]: false }));
+    }
   }
 
-  useEffect(() => {
-    void load();
-  }, []);
+  function handleSectionOpen(section: AdminSectionKey) {
+    if (section === 'create-post') return;
+    void loadSection(section);
+  }
+
+  async function refreshSections(sections: AdminSectionKey[]) {
+    const targets = sections.filter(section => sectionLoaded[section]);
+    await Promise.all(targets.map(section => loadSection(section, true)));
+  }
 
   const longVideos = useMemo(
     () => videos.filter(v => v.content_type === 'long'),
@@ -123,7 +233,7 @@ export default function AdminClient() {
     );
 
     setPlaylist('');
-    await load();
+    await refreshSections(['sync', 'classification', 'playlists', 'videos']);
   }
 
   async function syncAllPlaylists() {
@@ -160,7 +270,7 @@ export default function AdminClient() {
       }.`
     );
 
-    await load();
+    await refreshSections(['sync', 'classification', 'playlists', 'videos']);
   }
 
   async function syncAllShorts() {
@@ -188,7 +298,7 @@ export default function AdminClient() {
       }.`
     );
 
-    await load();
+    await refreshSections(['sync', 'classification', 'playlists', 'videos']);
   }
 
   async function syncSingleVideo() {
@@ -224,7 +334,7 @@ export default function AdminClient() {
 
       setSingleVideoUrl('');
       setSingleVideoTopicId('');
-      await load();
+      await refreshSections(['sync', 'classification', 'playlists', 'videos']);
     } catch (error) {
       return setStatus(
         error instanceof Error
@@ -284,7 +394,7 @@ export default function AdminClient() {
     setStatus(`Short added: ${d.video.title}`);
 
     setShortUrl('');
-    await load();
+    await refreshSections(['sync', 'classification', 'playlists', 'videos']);
   }
 
   function openVideoContentEditor(video: Video) {
@@ -421,7 +531,7 @@ export default function AdminClient() {
       setPostCategory('learning');
       setPostImages(null);
       setPostYoutubeUrl('');
-      await load();
+      await refreshSections(['posts', 'reply']);
     }
   }
 
@@ -445,7 +555,7 @@ export default function AdminClient() {
     }
 
     setStatus('Community post permanently deleted.');
-    await load();
+    await refreshSections(['posts', 'reply', 'comments']);
   }
 
   async function togglePost(id: string, published: boolean) {
@@ -456,7 +566,7 @@ export default function AdminClient() {
     });
 
     if (r.ok) {
-      await load();
+      await refreshSections(['posts', 'reply']);
     }
   }
 
@@ -476,7 +586,7 @@ export default function AdminClient() {
     }
 
     setStatus('Comment permanently deleted.');
-    await load();
+    await refreshSections(['comments']);
   }
 
   async function toggleComment(id: string, published: boolean) {
@@ -487,7 +597,7 @@ export default function AdminClient() {
     });
 
     if (r.ok) {
-      await load();
+      await refreshSections(['comments']);
     }
   }
 
@@ -515,7 +625,7 @@ export default function AdminClient() {
 
     setReplyBody('');
     setStatus('Admin reply posted.');
-    await load();
+    await refreshSections(['comments']);
   }
 
   const renderDropZone = (
@@ -569,7 +679,20 @@ export default function AdminClient() {
 
   return (
     <div>
-      <section className="section">
+      <div className="adminAccordionIntro">
+        <p className="small">Expand only what you need. Each section fetches its own data when opened, so the initial admin page stays compact and avoids loading unrelated details.</p>
+      </div>
+      <AdminAccordion
+        eyebrow="YouTube sync and imports"
+        title="Content Sync"
+        description="Fetch playlist/category data only when opened"
+        section="sync"
+        loading={sectionLoading["sync"] || false}
+        loaded={sectionLoaded["sync"] || false}
+        error={sectionErrors["sync"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
+
         <h2>Content Sync</h2>
 
         <p className="small">
@@ -733,9 +856,19 @@ export default function AdminClient() {
             </button>
           </div>
         </div>
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Long Videos \u2194 Shorts"
+        title="Video Classification"
+        description="Fetch videos only when opened"
+        section="classification"
+        loading={sectionLoading["classification"] || false}
+        loaded={sectionLoaded["classification"] || false}
+        error={sectionErrors["classification"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <div className="topicHeader">
           <div>
             <div className="eyebrow">
@@ -765,9 +898,19 @@ export default function AdminClient() {
             shortVideos
           )}
         </div>
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Your Playlist Categories"
+        title="Playlist Categories"
+        description="Fetch categories only when opened"
+        section="playlists"
+        loading={sectionLoading["playlists"] || false}
+        loaded={sectionLoaded["playlists"] || false}
+        error={sectionErrors["playlists"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <div className="topicHeader">
           <div>
             <div className="eyebrow">
@@ -790,9 +933,7 @@ export default function AdminClient() {
                 </p>
 
                 <p className="small">
-                  {videos.filter(
-                    v => v.topic_id === t.id
-                  ).length}{' '}
+                  {topicVideoCounts[t.id] ?? 0}{' '}
                   videos
                 </p>
 
@@ -820,9 +961,19 @@ export default function AdminClient() {
             </div>
           </div>
         )}
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Publish a new community post"
+        title="Create Community Post"
+        description="No data is fetched for this form"
+        section="create-post"
+        loading={sectionLoading["create-post"] || false}
+        loaded={sectionLoaded["create-post"] || false}
+        error={sectionErrors["create-post"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <h2>Create Community Post</h2>
 
         <label>Title</label>
@@ -895,9 +1046,19 @@ export default function AdminClient() {
         >
           Publish community post
         </button>
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Manage, hide or delete posts"
+        title="Community Posts"
+        description="Fetch posts only when opened"
+        section="posts"
+        loading={sectionLoading["posts"] || false}
+        loaded={sectionLoaded["posts"] || false}
+        error={sectionErrors["posts"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <h2>Community Posts</h2>
 
         <table className="table">
@@ -956,9 +1117,19 @@ export default function AdminClient() {
             ))}
           </tbody>
         </table>
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Reply to a community post"
+        title="Admin Reply"
+        description="Fetch posts only when opened"
+        section="reply"
+        loading={sectionLoading["reply"] || false}
+        loaded={sectionLoaded["reply"] || false}
+        error={sectionErrors["reply"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <h2>Admin Reply</h2>
 
         <p className="small">
@@ -1000,9 +1171,19 @@ export default function AdminClient() {
         >
           Reply as Admin
         </button>
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Moderate visitor comments"
+        title="Comment Moderation"
+        description="Fetch comments only when opened"
+        section="comments"
+        loading={sectionLoading["comments"] || false}
+        loaded={sectionLoaded["comments"] || false}
+        error={sectionErrors["comments"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <h2>Comment Moderation</h2>
 
         <table className="table">
@@ -1070,9 +1251,19 @@ export default function AdminClient() {
             ))}
           </tbody>
         </table>
-      </section>
+      
+      </AdminAccordion>
+      <AdminAccordion
+        eyebrow="Manage SEO description and full website analysis"
+        title="Current Videos / SEO"
+        description="Fetch video details only when opened"
+        section="videos"
+        loading={sectionLoading["videos"] || false}
+        loaded={sectionLoaded["videos"] || false}
+        error={sectionErrors["videos"] || ''}
+        onOpen={section => handleSectionOpen(section as AdminSectionKey)}
+      >
 
-      <section className="section">
         <h2>Current Videos</h2>
 
         <p className="small">
@@ -1311,20 +1502,14 @@ export default function AdminClient() {
             ))}
           </tbody>
         </table>
-      </section>
-
+      
+      </AdminAccordion>
       <p className="small">{status}</p>
 
-      <button
-        className="btn"
-        onClick={async () => {
-          await fetch('/api/admin/logout', {
-            method: 'POST',
-          });
-
-          location.href = '/admin/login';
-        }}
-      >
+      <button className="btn" onClick={async () => {
+        await fetch('/api/admin/logout', { method: 'POST' });
+        location.href = '/admin/login';
+      }}>
         Sign out
       </button>
     </div>
