@@ -294,7 +294,7 @@ async function getExistingVideo(
   } = await db
     .from('videos')
     .select(
-      'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,analysis_intro,key_points,published,original_topic_id,classification_locked'
+      'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,key_points,published,original_topic_id,classification_locked'
     )
     .eq(
       'youtube_video_id',
@@ -365,10 +365,6 @@ export async function syncVideoById(
   row.classification_locked =
     existing?.classification_locked ??
     false;
-
-  row.analysis_intro =
-    existing?.analysis_intro ??
-    null;
 
   row.key_points =
     existing?.key_points ?? [];
@@ -668,10 +664,6 @@ export async function syncPlaylistById(
       row.classification_locked =
         existing?.classification_locked ??
         false;
-
-      row.analysis_intro =
-        existing?.analysis_intro ??
-        null;
 
       row.key_points =
         existing?.key_points ?? [];
@@ -1023,7 +1015,7 @@ export async function syncChannelShorts(
     ? await db
         .from('videos')
         .select(
-          'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,analysis_intro,key_points,published,original_topic_id,classification_locked'
+          'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,key_points,published,original_topic_id,classification_locked'
         )
         .in(
           'youtube_video_id',
@@ -1101,10 +1093,6 @@ export async function syncChannelShorts(
       row.classification_locked =
         existing?.classification_locked ??
         false;
-
-      row.analysis_intro =
-        existing?.analysis_intro ??
-        null;
 
       row.key_points =
         existing?.key_points ?? [];
@@ -1231,7 +1219,7 @@ export async function syncShortsMetadata() {
   } = await db
     .from('videos')
     .select(
-      'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,analysis_intro,key_points,published,original_topic_id,classification_locked'
+      'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,key_points,published,original_topic_id,classification_locked'
     )
     .eq(
       'content_type',
@@ -1275,10 +1263,6 @@ export async function syncShortsMetadata() {
       row.classification_locked =
         existing.classification_locked ??
         false;
-
-      row.analysis_intro =
-        existing.analysis_intro ??
-        null;
 
       row.key_points =
         existing.key_points ?? [];

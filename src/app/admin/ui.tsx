@@ -23,7 +23,9 @@ type Video = {
   classification_locked: boolean;
   seo_description: string | null;
   seo_description_managed: boolean;
-  analysis_intro: string | null;
+  what_we_cover: string | null;
+  key_questions: string | null;
+  our_approach: string | null;
 };
 
 type CommunityPostCategory = 'learning' | 'stocks-to-watch-next-week';
@@ -122,7 +124,9 @@ export default function AdminClient() {
   const [draggedVideoId, setDraggedVideoId] = useState<string | null>(null);
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
   const [seoDescriptionDraft, setSeoDescriptionDraft] = useState('');
-  const [analysisIntroDraft, setAnalysisIntroDraft] = useState('');
+  const [whatWeCoverDraft, setWhatWeCoverDraft] = useState('');
+  const [keyQuestionsDraft, setKeyQuestionsDraft] = useState('');
+  const [ourApproachDraft, setOurApproachDraft] = useState('');
   const [savingVideoContent, setSavingVideoContent] = useState(false);
 
   type AdminSectionKey =
@@ -405,14 +409,18 @@ export default function AdminClient() {
     setSeoDescriptionDraft(
       video.seo_description_managed ? video.seo_description || '' : ''
     );
-    setAnalysisIntroDraft(video.analysis_intro || '');
+    setWhatWeCoverDraft(video.what_we_cover || '');
+    setKeyQuestionsDraft(video.key_questions || '');
+    setOurApproachDraft(video.our_approach || '');
     setStatus('');
   }
 
   function closeVideoContentEditor() {
     setEditingVideoId(null);
     setSeoDescriptionDraft('');
-    setAnalysisIntroDraft('');
+    setWhatWeCoverDraft('');
+    setKeyQuestionsDraft('');
+    setOurApproachDraft('');
   }
 
   async function saveVideoContent(video: Video) {
@@ -427,7 +435,9 @@ export default function AdminClient() {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             seoDescription: seoDescriptionDraft,
-            analysisIntro: analysisIntroDraft,
+            whatWeCover: whatWeCoverDraft,
+            keyQuestions: keyQuestionsDraft,
+            ourApproach: ourApproachDraft,
           }),
         }
       );
@@ -447,7 +457,9 @@ export default function AdminClient() {
                 seo_description: d.video?.seo_description ?? null,
                 seo_description_managed:
                   d.video?.seo_description_managed ?? false,
-                analysis_intro: d.video?.analysis_intro ?? null,
+                what_we_cover: d.video?.what_we_cover ?? null,
+                key_questions: d.video?.key_questions ?? null,
+                our_approach: d.video?.our_approach ?? null,
               }
             : v
         )
@@ -1323,7 +1335,7 @@ export default function AdminClient() {
 
         <p className="small">
           VideoObject structured data is included on every video page.
-          SEO description and Full Website Analysis are managed here
+          SEO description and the three website analysis sections are managed here
           per YouTube video ID and are never overwritten by YouTube sync.
         </p>
 
@@ -1393,7 +1405,7 @@ export default function AdminClient() {
                   </td>
 
                   <td>
-                    {v.analysis_intro ? (
+                    {v.what_we_cover || v.key_questions || v.our_approach ? (
                       <strong>✅ Added</strong>
                     ) : (
                       <span className="small">
@@ -1470,28 +1482,58 @@ export default function AdminClient() {
                             {seoDescriptionDraft.length}/160
                           </div>
 
-                          <label htmlFor={`analysis-intro-${v.id}`}>
-                            Full Website Analysis
+                          <div className="card adminActionCard" style={{ marginTop: '20px' }}>
+                            <div className="cardbody">
+                              <strong>Website Analysis</strong>
+                              <p className="small">
+                                Fill these three sections to build the website analysis shown on the video page.
+                              </p>
+                            </div>
+                          </div>
+
+                          <label htmlFor={`what-we-cover-${v.id}`}>
+                            What We Cover
                           </label>
 
                           <textarea
-                            id={`analysis-intro-${v.id}`}
-                            value={analysisIntroDraft}
-                            onChange={e =>
-                              setAnalysisIntroDraft(e.target.value)
-                            }
-                            maxLength={20000}
-                            placeholder="Write the full analysis for users who do not have time to watch the full video."
-                            rows={12}
+                            id={`what-we-cover-${v.id}`}
+                            value={whatWeCoverDraft}
+                            onChange={e => setWhatWeCoverDraft(e.target.value)}
+                            maxLength={10000}
+                            placeholder="What is being analysed in this video?"
+                            rows={6}
+                          />
+
+                          <label htmlFor={`key-questions-${v.id}`}>
+                            The Key Questions
+                          </label>
+
+                          <textarea
+                            id={`key-questions-${v.id}`}
+                            value={keyQuestionsDraft}
+                            onChange={e => setKeyQuestionsDraft(e.target.value)}
+                            maxLength={10000}
+                            placeholder="What key questions does the analysis examine?"
+                            rows={6}
+                          />
+
+                          <label htmlFor={`our-approach-${v.id}`}>
+                            Our Approach
+                          </label>
+
+                          <textarea
+                            id={`our-approach-${v.id}`}
+                            value={ourApproachDraft}
+                            onChange={e => setOurApproachDraft(e.target.value)}
+                            maxLength={10000}
+                            placeholder="How do we analyse the chart, levels, price action or setup?"
+                            rows={6}
                           />
 
                           <div className="small">
-                            This is the primary written analysis shown on the
-                            website video page. The SEO description is used for
-                            page metadata and the video cards on the site.
-                            YouTube description stays as secondary backend data
-                            and is shown publicly only when both of these fields
-                            are empty.
+                            These three sections become the primary written content on the video page.
+                            YouTube description remains secondary backend data and is not used as
+                            the website's SEO description.
                           </div>
 
                           <div className="adminSeoPreview">
@@ -1515,17 +1557,35 @@ export default function AdminClient() {
                             <div className="eyebrow">Website preview</div>
 
                             <h4>
-                              {analysisIntroDraft.trim()
-                                ? 'Check the Full Analysis Instead'
-                                : seoDescriptionDraft.trim()
-                                  ? 'About this video'
-                                  : 'YouTube description fallback'}
+                              Check the Full Analysis, Key Levels &amp; BUY/SELL View
                             </h4>
 
                             <div className="prose">
-                              {analysisIntroDraft.trim() ||
-                                seoDescriptionDraft.trim() ||
-                                'The YouTube description will be used here only when both admin fields are empty.'}
+                              {whatWeCoverDraft.trim() && (
+                                <>
+                                  <strong>What We Cover</strong>
+                                  <div>{whatWeCoverDraft}</div>
+                                </>
+                              )}
+
+                              {keyQuestionsDraft.trim() && (
+                                <>
+                                  <strong>The Key Questions</strong>
+                                  <div>{keyQuestionsDraft}</div>
+                                </>
+                              )}
+
+                              {ourApproachDraft.trim() && (
+                                <>
+                                  <strong>Our Approach</strong>
+                                  <div>{ourApproachDraft}</div>
+                                </>
+                              )}
+
+                              {!whatWeCoverDraft.trim() &&
+                                !keyQuestionsDraft.trim() &&
+                                !ourApproachDraft.trim() &&
+                                'No website analysis sections are set yet.'}
                             </div>
                           </div>
 

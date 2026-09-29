@@ -15,7 +15,6 @@ export async function POST(req: Request) {
   const {
     video,
     topicId,
-    analysisIntro,
     keyPoints,
     seoDescription,
   } = await req.json();
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
   const { data: existing, error: existingError } = await db
     .from('videos')
     .select(
-      'id,slug,seo_title,seo_description,seo_description_managed,analysis_intro,key_points,topic_id,content_type,classification_locked,original_topic_id'
+      'id,slug,seo_title,seo_description,seo_description_managed,key_points,topic_id,content_type,classification_locked,original_topic_id'
     )
     .eq('youtube_video_id', video.id)
     .maybeSingle();
@@ -85,10 +84,6 @@ export async function POST(req: Request) {
       typeof seoDescription === 'string'
         ? Boolean(seoDescription.trim())
         : existing?.seo_description_managed ?? false,
-    analysis_intro:
-      typeof analysisIntro === 'string'
-        ? analysisIntro.trim() || null
-        : existing?.analysis_intro ?? null,
     key_points:
       Array.isArray(keyPoints)
         ? keyPoints

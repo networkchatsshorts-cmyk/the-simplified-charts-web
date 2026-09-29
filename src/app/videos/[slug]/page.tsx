@@ -178,7 +178,14 @@ export default async function VideoPage({
       ? video.seo_description.trim()
       : '';
 
-  const fullAnalysis = video.analysis_intro?.trim() || '';
+  const whatWeCover = video.what_we_cover?.trim() || '';
+  const keyQuestions = video.key_questions?.trim() || '';
+  const ourApproach = video.our_approach?.trim() || '';
+  const hasStructuredAnalysis = Boolean(whatWeCover || keyQuestions || ourApproach);
+  const analysisForSchema = [whatWeCover, keyQuestions, ourApproach]
+    .filter(Boolean)
+    .join(' ');
+  const fullAnalysis = analysisForSchema;
 
   const visibleFallbackDescription =
     !fullAnalysis && !activeSeoDescription
@@ -302,7 +309,7 @@ export default async function VideoPage({
             video.key_points.length > 0) ||
           visibleFallbackDescription) && (
           <section className="section fullAnalysisSection">
-            {fullAnalysis ? (
+            {hasStructuredAnalysis ? (
               <div className="fullAnalysisCard">
                 <h2>Check the Full Analysis, Key Levels & BUY/SELL View</h2>
 
@@ -312,8 +319,27 @@ export default async function VideoPage({
                   levels and context covered in the video.
                 </p>
 
-                <div className="prose fullAnalysisContent">
-                  {fullAnalysis}
+                <div className="fullAnalysisContent">
+                  {whatWeCover && (
+                    <section>
+                      <h3>What We Cover</h3>
+                      <div className="prose">{whatWeCover}</div>
+                    </section>
+                  )}
+
+                  {keyQuestions && (
+                    <section>
+                      <h3>The Key Questions</h3>
+                      <div className="prose">{keyQuestions}</div>
+                    </section>
+                  )}
+
+                  {ourApproach && (
+                    <section>
+                      <h3>Our Approach</h3>
+                      <div className="prose">{ourApproach}</div>
+                    </section>
+                  )}
                 </div>
               </div>
             ) : activeSeoDescription ? (

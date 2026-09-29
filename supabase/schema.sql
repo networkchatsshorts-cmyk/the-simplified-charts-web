@@ -29,7 +29,6 @@ create table if not exists public.videos (
   seo_title text,
   seo_description text,
   seo_description_managed boolean not null default false,
-  analysis_intro text,
   key_points text[] default '{}',
   published boolean not null default true,
   created_at timestamptz not null default now(),

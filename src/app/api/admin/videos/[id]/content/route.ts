@@ -3,7 +3,7 @@ import { isAdmin } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
 const SEO_DESCRIPTION_MAX = 160;
-const ANALYSIS_MAX = 20000;
+const SECTION_MAX = 10000;
 
 export async function PATCH(
   req: Request,
@@ -30,7 +30,9 @@ export async function PATCH(
 
   if (
     typeof body?.seoDescription !== 'string' ||
-    typeof body?.analysisIntro !== 'string'
+    typeof body?.whatWeCover !== 'string' ||
+    typeof body?.keyQuestions !== 'string' ||
+    typeof body?.ourApproach !== 'string'
   ) {
     return NextResponse.json(
       { error: 'SEO description and website analysis are required as text.' },
@@ -39,7 +41,9 @@ export async function PATCH(
   }
 
   const seoDescription = body.seoDescription.trim();
-  const analysisIntro = body.analysisIntro.trim();
+  const whatWeCover = body.whatWeCover.trim();
+  const keyQuestions = body.keyQuestions.trim();
+  const ourApproach = body.ourApproach.trim();
 
   if (seoDescription.length > SEO_DESCRIPTION_MAX) {
     return NextResponse.json(
@@ -50,20 +54,24 @@ export async function PATCH(
     );
   }
 
-  if (analysisIntro.length > ANALYSIS_MAX) {
-    return NextResponse.json(
-      {
-        error: `Website analysis must be ${ANALYSIS_MAX} characters or fewer.`,
-      },
-      { status: 400 }
-    );
+  for (const [label, value] of [
+    ['What We Cover', whatWeCover],
+    ['The Key Questions', keyQuestions],
+    ['Our Approach', ourApproach],
+  ] as const) {
+    if (value.length > SECTION_MAX) {
+      return NextResponse.json(
+        { error: `${label} must be ${SECTION_MAX} characters or fewer.` },
+        { status: 400 }
+      );
+    }
   }
 
   const db = getSupabaseAdmin();
 
   const { data: existing, error: lookupError } = await db
     .from('videos')
-    .select('id,youtube_video_id,seo_description,seo_description_managed,analysis_intro')
+    .select('id,youtube_video_id,seo_description,seo_description_managed,what_we_cover,key_questions,our_approach')
     .eq('youtube_video_id', videoId)
     .maybeSingle();
 
@@ -88,11 +96,13 @@ export async function PATCH(
       // falls back to the YouTube description.
       seo_description: seoDescription || null,
       seo_description_managed: Boolean(seoDescription),
-      analysis_intro: analysisIntro || null,
+      what_we_cover: whatWeCover || null,
+      key_questions: keyQuestions || null,
+      our_approach: ourApproach || null,
     })
     .eq('youtube_video_id', videoId)
     .select(
-      'id,youtube_video_id,seo_description,seo_description_managed,analysis_intro,slug,title'
+      'id,youtube_video_id,seo_description,seo_description_managed,what_we_cover,key_questions,our_approach,slug,title'
     )
     .single();
 

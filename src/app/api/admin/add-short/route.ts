@@ -18,7 +18,6 @@ export async function POST(req: Request) {
   const {
     video,
     topicId,
-    analysisIntro,
     keyPoints,
     seoDescription,
   } = await req.json();
@@ -37,7 +36,7 @@ export async function POST(req: Request) {
       await db
         .from('videos')
         .select(
-          'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,analysis_intro,key_points,published,original_topic_id,classification_locked'
+          'id,youtube_video_id,slug,title,description,youtube_url,thumbnail_url,published_at,duration_iso,duration_seconds,channel_id,channel_title,tags,category_id,topic_id,content_type,seo_title,seo_description,key_points,published,original_topic_id,classification_locked'
         )
         .eq('youtube_video_id', video.id)
         .maybeSingle();
