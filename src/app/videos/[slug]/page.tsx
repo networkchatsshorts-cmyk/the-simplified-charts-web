@@ -304,11 +304,7 @@ export default async function VideoPage({
           <section className="section fullAnalysisSection">
             {fullAnalysis ? (
               <div className="fullAnalysisCard">
-                <div className="eyebrow">
-                  Short on time?
-                </div>
-
-                <h2>Check the Full Analysis Instead</h2>
+                <h2>Check the Full Analysis, Key Levels & BUY/SELL View</h2>
 
                 <p className="analysisIntroLead">
                   Don&apos;t have time to watch the full video?
