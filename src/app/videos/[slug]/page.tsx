@@ -213,19 +213,19 @@ export default async function VideoPage({
       ? video.seo_description.trim()
       : '';
 
-  const whatWeCover = video.what_we_cover?.trim() || '';
-  const keyQuestions = video.key_questions?.trim() || '';
-  const ourApproach = video.our_approach?.trim() || '';
-  const analysisDisclaimer = extractAnalysisDisclaimer(ourApproach);
-  const ourApproachBody = analysisDisclaimer.content;
-  const fullAnalysis = [whatWeCover, keyQuestions, ourApproachBody]
+  const whatThisAnalysisCovers = video.what_this_analysis_covers?.trim() || '';
+  const keyLevelsToWatch = video.key_levels_to_watch?.trim() || '';
+  const howToReadTheSetup = video.how_to_read_the_setup?.trim() || '';
+  const analysisDisclaimer = extractAnalysisDisclaimer(howToReadTheSetup);
+  const howToReadTheSetupBody = analysisDisclaimer.content;
+  const fullAnalysis = [whatThisAnalysisCovers, keyLevelsToWatch, howToReadTheSetupBody]
     .filter(Boolean)
     .join(' ');
   const hasStructuredAnalysis = Boolean(fullAnalysis);
 
-  const whatWeCoverItems = splitAnalysisLines(whatWeCover);
-  const keyQuestionItems = splitAnalysisLines(keyQuestions);
-  const approachParagraphs = splitAnalysisParagraphs(ourApproachBody);
+  const whatThisAnalysisCoversItems = splitAnalysisLines(whatThisAnalysisCovers);
+  const keyQuestionItems = splitAnalysisLines(keyLevelsToWatch);
+  const approachParagraphs = splitAnalysisParagraphs(howToReadTheSetupBody);
 
   const visibleFallbackDescription =
     !fullAnalysis && !activeSeoDescription
@@ -358,11 +358,11 @@ export default async function VideoPage({
                 </p>
 
                 <div className="fullAnalysisContent">
-                  {whatWeCoverItems.length > 0 && (
+                  {whatThisAnalysisCoversItems.length > 0 && (
                     <section className="analysisPanel analysisPanelCover">
                       <h3>What This Analysis Covers</h3>
                       <ul className="analysisList">
-                        {whatWeCoverItems.map((item, index) => (
+                        {whatThisAnalysisCoversItems.map((item, index) => (
                           <li key={`${item}-${index}`}>{item}</li>
                         ))}
                       </ul>
@@ -380,7 +380,7 @@ export default async function VideoPage({
                     </section>
                   )}
 
-                  {ourApproachBody && (
+                  {howToReadTheSetupBody && (
                     <section className="analysisPanel analysisPanelApproach">
                       <h3>How to Read the Setup</h3>
                       <div className="analysisApproach">
