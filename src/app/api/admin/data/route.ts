@@ -2,12 +2,6 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
 
-const BASE_VIDEO_FIELDS =
-  'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked';
-
-const VIDEO_SEO_FIELDS =
-  `${BASE_VIDEO_FIELDS},seo_description,seo_description_managed,analysis_intro`;
-
 export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,11 +9,13 @@ export async function GET() {
 
   const db = getSupabaseAdmin();
 
-  const [topicsRes, videosRes, postsRes, commentsRes] = await Promise.all([
+  const [topicsRes, videosResPrimary, postsRes, commentsRes] = await Promise.all([
     db.from('topics').select('*').order('name'),
     db
       .from('videos')
-      .select(VIDEO_SEO_FIELDS)
+      .select(
+        'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked,seo_description,seo_description_managed,analysis_intro'
+      )
       .order('published_at', { ascending: false })
       .limit(2000),
     db
@@ -34,50 +30,46 @@ export async function GET() {
       .limit(1000),
   ]);
 
-  // Keep the entire admin dashboard functional even if an older production
-  // database has not received the optional SEO migration yet. In that case,
-  // videos still load with the original fields and the SEO editor can report
-  // the database issue separately instead of making posts/comments disappear.
-  let finalVideosRes = videosRes;
-  let videoSeoFieldsAvailable = true;
+  // Keep the Admin dashboard working even if the new SEO columns are not
+  // available in the production database yet. The fallback deliberately
+  // selects only the original columns and normalizes the new fields below.
+  let videosData: any[] = videosResPrimary.data ?? [];
+  let videosError = videosResPrimary.error;
 
-  if (videosRes.error) {
-    finalVideosRes = await db
+  if (videosError) {
+    const fallback = await db
       .from('videos')
-      .select(BASE_VIDEO_FIELDS)
+      .select(
+        'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked'
+      )
       .order('published_at', { ascending: false })
       .limit(2000);
-    videoSeoFieldsAvailable = false;
+
+    if (!fallback.error) {
+      videosData = (fallback.data ?? []).map((video) => ({
+        ...video,
+        seo_description: null,
+        seo_description_managed: false,
+        analysis_intro: null,
+      }));
+      videosError = null;
+    }
   }
 
   const error =
     topicsRes.error ||
-    finalVideosRes.error ||
+    videosError ||
     postsRes.error ||
     commentsRes.error;
 
   if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const videos = (finalVideosRes.data || []).map(video => ({
-    ...video,
-    seo_description: 'seo_description' in video ? video.seo_description : null,
-    seo_description_managed:
-      'seo_description_managed' in video
-        ? video.seo_description_managed
-        : false,
-    analysis_intro: 'analysis_intro' in video ? video.analysis_intro : null,
-  }));
-
   return NextResponse.json({
-    topics: topicsRes.data || [],
-    videos,
-    posts: postsRes.data || [],
-    comments: commentsRes.data || [],
-    videoSeoFieldsAvailable,
+    topics: topicsRes.data ?? [],
+    videos: videosData,
+    posts: postsRes.data ?? [],
+    comments: commentsRes.data ?? [],
   });
 }
