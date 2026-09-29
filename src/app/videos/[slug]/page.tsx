@@ -392,11 +392,9 @@ export default async function VideoPage({
                   )}
                 </div>
 
-                {analysisDisclaimer && (
-                  <div className="analysisDisclaimer">
-                    {analysisDisclaimer.disclaimer}
-                  </div>
-                )}
+                <div className="analysisDisclaimer">
+                  Educational content only. Not SEBI-registered investment advice. Do your own research before making any financial decision.
+                </div>
               </div>
             ) : activeSeoDescription ? (
               <div className="card fallbackDescriptionCard">
