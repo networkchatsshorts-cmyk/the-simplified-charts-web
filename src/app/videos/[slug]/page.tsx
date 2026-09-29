@@ -49,20 +49,6 @@ function splitAnalysisParagraphs(value: string) {
     .filter(Boolean);
 }
 
-function extractAnalysisDisclaimer(value: string) {
-  const marker = /Educational content only\.[\s\S]*/i;
-  const match = value.match(marker);
-
-  if (!match || match.index === undefined) {
-    return { content: value, disclaimer: '' };
-  }
-
-  return {
-    content: value.slice(0, match.index).trim(),
-    disclaimer: match[0].trim(),
-  };
-}
-
 const getVideo = cache(async (slug: string) => {
   const db = getSupabaseAdmin();
 
@@ -159,8 +145,11 @@ export async function generateMetadata({
     return {};
   }
 
+  // Admin-managed SEO description is used for the HTML meta description
+  // on both long videos and Shorts. It is only rendered visibly on Shorts.
   const description =
-    video.seo_description_managed && video.seo_description?.trim()
+    video.seo_description_managed &&
+    video.seo_description?.trim()
       ? video.seo_description.trim()
       : undefined;
 
@@ -208,29 +197,28 @@ export default async function VideoPage({
     video.youtube_video_id
   );
 
+  const isShort = video.content_type === 'short';
+
+  // Same admin-managed SEO description, but only surfaced in visible
+  // page content for Shorts. Long-video pages keep it in <head>.
   const activeSeoDescription =
-    video.seo_description_managed && video.seo_description?.trim()
+    video.seo_description_managed &&
+    video.seo_description?.trim()
       ? video.seo_description.trim()
       : '';
 
-  const whatThisAnalysisCovers = video.what_this_analysis_covers?.trim() || '';
-  const keyLevelsToWatch = video.key_levels_to_watch?.trim() || '';
-  const howToReadTheSetup = video.how_to_read_the_setup?.trim() || '';
-  const analysisDisclaimer = extractAnalysisDisclaimer(howToReadTheSetup);
-  const howToReadTheSetupBody = analysisDisclaimer.content;
-  const fullAnalysis = [whatThisAnalysisCovers, keyLevelsToWatch, howToReadTheSetupBody]
+  const whatWeCover = video.what_this_analysis_covers?.trim() || '';
+  const keyQuestions = video.key_levels_to_watch?.trim() || '';
+  const ourApproach = video.how_to_read_the_setup?.trim() || '';
+  const ourApproachBody = ourApproach;
+  const fullAnalysis = [whatWeCover, keyQuestions, ourApproachBody]
     .filter(Boolean)
     .join(' ');
   const hasStructuredAnalysis = Boolean(fullAnalysis);
 
-  const whatThisAnalysisCoversItems = splitAnalysisLines(whatThisAnalysisCovers);
-  const keyQuestionItems = splitAnalysisLines(keyLevelsToWatch);
-  const approachParagraphs = splitAnalysisParagraphs(howToReadTheSetupBody);
-
-  const visibleFallbackDescription =
-    !fullAnalysis && !activeSeoDescription
-      ? video.description?.trim() || ''
-      : '';
+  const whatWeCoverItems = splitAnalysisLines(whatWeCover);
+  const keyQuestionItems = splitAnalysisLines(keyQuestions);
+  const approachParagraphs = splitAnalysisParagraphs(ourApproachBody);
 
   const videoSchema = {
     '@context': 'https://schema.org',
@@ -345,9 +333,9 @@ export default async function VideoPage({
         </section>
 
         {(fullAnalysis ||
+          (isShort && activeSeoDescription) ||
           (Array.isArray(video.key_points) &&
-            video.key_points.length > 0) ||
-          visibleFallbackDescription) && (
+            video.key_points.length > 0)) && (
           <section className="section fullAnalysisSection">
             {hasStructuredAnalysis ? (
               <div className="fullAnalysisCard">
@@ -358,11 +346,11 @@ export default async function VideoPage({
                 </p>
 
                 <div className="fullAnalysisContent">
-                  {whatThisAnalysisCoversItems.length > 0 && (
+                  {whatWeCoverItems.length > 0 && (
                     <section className="analysisPanel analysisPanelCover">
                       <h3>What This Analysis Covers</h3>
                       <ul className="analysisList">
-                        {whatThisAnalysisCoversItems.map((item, index) => (
+                        {whatWeCoverItems.map((item, index) => (
                           <li key={`${item}-${index}`}>{item}</li>
                         ))}
                       </ul>
@@ -380,7 +368,7 @@ export default async function VideoPage({
                     </section>
                   )}
 
-                  {howToReadTheSetupBody && (
+                  {ourApproachBody && (
                     <section className="analysisPanel analysisPanelApproach">
                       <h3>How to Read the Setup</h3>
                       <div className="analysisApproach">
@@ -392,24 +380,12 @@ export default async function VideoPage({
                   )}
                 </div>
 
-                <div className="analysisDisclaimer">
-                  Educational content only. Not SEBI-registered investment advice. Do your own research before making any financial decision.
-                </div>
               </div>
-            ) : activeSeoDescription ? (
+            ) : isShort && activeSeoDescription ? (
               <div className="card fallbackDescriptionCard">
                 <div className="cardbody">
-                  <div className="eyebrow">About this video</div>
+                  <h2>About This Video</h2>
                   <p className="lead">{activeSeoDescription}</p>
-                </div>
-              </div>
-            ) : visibleFallbackDescription ? (
-              <div className="card fallbackDescriptionCard">
-                <div className="cardbody">
-                  <div className="eyebrow">About this video</div>
-                  <div className="prose">
-                    {visibleFallbackDescription}
-                  </div>
                 </div>
               </div>
             ) : null}
@@ -432,6 +408,12 @@ export default async function VideoPage({
               )}
           </section>
         )}
+
+        <section className="section">
+          <div className="analysisDisclaimer">
+            Educational content only. Not SEBI-registered investment advice. Do your own research before making any financial decision.
+          </div>
+        </section>
 
         {extractHashtags(video.description).length > 0 && (
           <section className="section">
