@@ -624,35 +624,34 @@ textarea {
 }
 
 .analysisQuestions li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  align-items: start;
-  padding-bottom: 14px;
+  position: relative;
+  padding: 0 0 14px 18px;
   border-bottom: 1px solid #eef1f5;
   font-size: 1rem;
   line-height: 1.6;
   color: #24364b;
 }
 
-.analysisQuestions li:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.analysisQuestionNumber {
+.analysisQuestions li::before {
+  content: '?';
+  position: absolute;
+  left: 0;
+  top: 0.08em;
+  width: 18px;
+  height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 999px;
+  border-radius: 50%;
   background: #f1f5f9;
   color: #475569;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+}
+
+.analysisQuestions li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .analysisApproach {
