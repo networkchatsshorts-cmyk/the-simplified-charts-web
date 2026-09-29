@@ -452,6 +452,16 @@ textarea {
   border-bottom: 1px solid var(--line);
 }
 
+.commentThread {
+  width: 100%;
+}
+
+.commentReply {
+  margin-left: 28px;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+
 .comment p {
   margin: 8px 0 0;
   line-height: 1.6;

@@ -93,13 +93,27 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (section === 'reply') {
+      const { data: comments, error: commentsError } = await db
+        .from('community_comments')
+        .select('id,post_id,parent_comment_id,display_name,body,published,created_at,is_admin')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+
+      if (commentsError) {
+        return NextResponse.json({ error: commentsError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ posts: data ?? [], comments: comments ?? [] });
+    }
+
     return NextResponse.json({ posts: data ?? [] });
   }
 
   if (section === 'comments') {
     const { data, error } = await db
       .from('community_comments')
-      .select('id,post_id,display_name,body,published,created_at,is_admin')
+      .select('id,post_id,parent_comment_id,display_name,body,published,created_at,is_admin')
       .order('created_at', { ascending: false })
       .limit(1000);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type CommunityPostCategory =
   | 'learning'
@@ -23,6 +24,7 @@ type Comment = {
   body: string;
   created_at: string;
   is_admin?: boolean;
+  parent_comment_id?: string | null;
 };
 
 type CommunityPostProps = {
@@ -314,40 +316,38 @@ export default function CommunityPost({
 
             {loaded && (
               <div className="commentList">
-                {comments.map(c => (
-                  <div
-                    className={`comment ${
-                      c.is_admin
-                        ? 'adminComment'
-                        : ''
-                    }`}
-                    key={c.id}
-                  >
-                    <div className="commentMeta">
-                      <strong>
-                        {c.display_name}
-                      </strong>
+                {(() => {
+                  const byParent = new Map<string | null, Comment[]>();
+                  for (const comment of comments) {
+                    const parentId = comment.parent_comment_id || null;
+                    const list = byParent.get(parentId) || [];
+                    list.push(comment);
+                    byParent.set(parentId, list);
+                  }
 
-                      {c.is_admin && (
-                        <span className="adminBadge">
-                          ADMIN
-                        </span>
-                      )}
+                  const renderComment = (comment: Comment, depth = 0): ReactNode => {
+                    const replies = byParent.get(comment.id) || [];
+                    return (
+                      <div key={comment.id} className="commentThread">
+                        <div className={`comment ${comment.is_admin ? 'adminComment' : ''} ${depth > 0 ? 'commentReply' : ''}`}>
+                          <div className="commentMeta">
+                            <strong>{comment.is_admin ? 'Admin' : comment.display_name}</strong>
+                            <span className="small">
+                              {new Date(comment.created_at).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <p>{comment.body}</p>
+                        </div>
+                        {replies.map(reply => renderComment(reply, depth + 1))}
+                      </div>
+                    );
+                  };
 
-                      <span className="small">
-                        {new Date(
-                          c.created_at
-                        ).toLocaleString(
-                          'en-IN'
-                        )}
-                      </span>
-                    </div>
-
-                    <p>{c.body}</p>
-                  </div>
-                ))}
+                  return (byParent.get(null) || []).map(comment => renderComment(comment));
+                })()}
               </div>
             )}
+
           </div>
         </div>
       </article>

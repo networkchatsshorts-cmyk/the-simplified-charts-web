@@ -71,6 +71,7 @@ function AdminAccordion({
   return (
     <details
       className="adminAccordion"
+      data-admin-section={section}
       onToggle={event => {
         if ((event.currentTarget as HTMLDetailsElement).open) {
           onOpen(section);
@@ -114,6 +115,8 @@ export default function AdminClient() {
   const [postYoutubeUrl, setPostYoutubeUrl] = useState('');
   const [postPublished, setPostPublished] = useState(true);
   const [replyPostId, setReplyPostId] = useState('');
+  const [replyTargetType, setReplyTargetType] = useState<'post' | 'comment'>('post');
+  const [replyCommentId, setReplyCommentId] = useState('');
   const [replyBody, setReplyBody] = useState('');
   const [status, setStatus] = useState('');
   const [draggedVideoId, setDraggedVideoId] = useState<string | null>(null);
@@ -172,7 +175,7 @@ export default function AdminClient() {
         setPosts(d.posts || []);
       }
 
-      if (section === 'comments') {
+      if (section === 'reply' || section === 'comments') {
         setComments(d.comments || []);
       }
 
@@ -601,18 +604,45 @@ export default function AdminClient() {
     }
   }
 
+  function selectCommentForReply(comment: Comment) {
+    setReplyTargetType('comment');
+    setReplyCommentId(comment.id);
+    setReplyPostId(comment.post_id);
+    setStatus('Comment selected. Open Admin Reply to respond to it.');
+    window.setTimeout(() => {
+      const section = document.querySelector('details[data-admin-section="reply"]') as HTMLDetailsElement | null;
+      if (section) {
+        section.open = true;
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 0);
+  }
+
   async function replyAsAdmin() {
-    if (!replyPostId || !replyBody.trim()) {
-      return setStatus(
-        'Select a post and write an admin reply.'
-      );
+    if (!replyBody.trim()) {
+      return setStatus('Write an admin reply first.');
+    }
+
+    let postId = replyPostId;
+    let parentCommentId: string | null = null;
+
+    if (replyTargetType === 'comment') {
+      const target = comments.find(comment => comment.id === replyCommentId);
+      if (!target) {
+        return setStatus('Choose a comment to reply to.');
+      }
+      postId = target.post_id;
+      parentCommentId = target.id;
+    } else if (!replyPostId) {
+      return setStatus('Choose a community post to reply to.');
     }
 
     const r = await fetch('/api/admin/comments', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        postId: replyPostId,
+        postId,
+        parentCommentId,
         body: replyBody,
       }),
     });
@@ -624,8 +654,9 @@ export default function AdminClient() {
     }
 
     setReplyBody('');
-    setStatus('Admin reply posted.');
-    await refreshSections(['comments']);
+    setReplyCommentId('');
+    setStatus(parentCommentId ? 'Admin reply posted to the comment.' : 'Admin reply posted to the post.');
+    await refreshSections(['comments', 'reply']);
   }
 
   const renderDropZone = (
@@ -1122,7 +1153,7 @@ export default function AdminClient() {
       <AdminAccordion
         eyebrow="Reply to a community post"
         title="Admin Reply"
-        description="Fetch posts only when opened"
+        description="Fetch posts and comments only when opened"
         section="reply"
         loading={sectionLoading["reply"] || false}
         loaded={sectionLoaded["reply"] || false}
@@ -1133,35 +1164,64 @@ export default function AdminClient() {
         <h2>Admin Reply</h2>
 
         <p className="small">
-          Reply from this panel and visitors will see an ADMIN
-          badge.
+          Reply to the original post or directly to any visitor/admin comment.
         </p>
 
+        <label>Reply target</label>
         <select
-          value={replyPostId}
-          onChange={e =>
-            setReplyPostId(e.target.value)
-          }
+          value={replyTargetType}
+          onChange={e => {
+            const type = e.target.value as 'post' | 'comment';
+            setReplyTargetType(type);
+            if (type === 'post') setReplyCommentId('');
+          }}
         >
-          <option value="">
-            Choose a community post
-          </option>
-
-          {posts.map(p => (
-            <option
-              key={p.id}
-              value={p.id}
-            >
-              {p.title}
-            </option>
-          ))}
+          <option value="post">Reply to community post</option>
+          <option value="comment">Reply to a comment</option>
         </select>
+
+        {replyTargetType === 'post' ? (
+          <>
+            <label>Community post</label>
+            <select
+              value={replyPostId}
+              onChange={e => setReplyPostId(e.target.value)}
+            >
+              <option value="">Choose a community post</option>
+              {posts.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <>
+            <label>Comment to reply to</label>
+            <select
+              value={replyCommentId}
+              onChange={e => setReplyCommentId(e.target.value)}
+            >
+              <option value="">Choose a comment</option>
+              {comments.map(c => {
+                const post = posts.find(p => p.id === c.post_id);
+                const preview = c.body.replace(/\s+/g, ' ').slice(0, 90);
+                return (
+                  <option key={c.id} value={c.id}>
+                    {c.is_admin ? 'Admin' : c.display_name} — {preview}{post ? ` · ${post.title}` : ''}
+                  </option>
+                );
+              })}
+            </select>
+            {!comments.length && (
+              <p className="small">No comments loaded yet. Open Comment Moderation once to fetch them, or use “Reply to comment” beside a comment.</p>
+            )}
+          </>
+        )}
 
         <textarea
           value={replyBody}
-          onChange={e =>
-            setReplyBody(e.target.value)
-          }
+          onChange={e => setReplyBody(e.target.value)}
           placeholder="Write an admin reply..."
         />
 
@@ -1200,10 +1260,7 @@ export default function AdminClient() {
               <tr key={c.id}>
                 <td>
                   <strong>
-                    {c.display_name}
-                    {c.is_admin
-                      ? ' · ADMIN'
-                      : ''}
+                    {c.is_admin ? 'Admin' : c.display_name}
                   </strong>
 
                   <div className="small">
@@ -1226,23 +1283,21 @@ export default function AdminClient() {
                 <td>
                   <button
                     className="btn"
-                    onClick={() =>
-                      toggleComment(
-                        c.id,
-                        !c.published
-                      )
-                    }
+                    onClick={() => selectCommentForReply(c)}
                   >
-                    {c.published
-                      ? 'Hide'
-                      : 'Restore'}
+                    Reply to comment
+                  </button>{' '}
+
+                  <button
+                    className="btn"
+                    onClick={() => toggleComment(c.id, !c.published)}
+                  >
+                    {c.published ? 'Hide' : 'Restore'}
                   </button>{' '}
 
                   <button
                     className="btn danger"
-                    onClick={() =>
-                      deleteComment(c.id)
-                    }
+                    onClick={() => deleteComment(c.id)}
                   >
                     Delete permanently
                   </button>

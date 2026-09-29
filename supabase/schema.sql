@@ -57,6 +57,7 @@ create table if not exists public.community_comments (
   body text not null,
   published boolean not null default true,
   is_admin boolean not null default false,
+  parent_comment_id uuid references public.community_comments(id) on delete cascade,
   created_at timestamptz not null default now()
 );
 
@@ -65,6 +66,7 @@ create index if not exists videos_published_idx on public.videos(published, publ
 create index if not exists videos_content_type_idx on public.videos(content_type, published, published_at desc);
 create index if not exists community_posts_published_idx on public.community_posts(published, created_at desc);
 create index if not exists community_comments_post_id_idx on public.community_comments(post_id, created_at desc);
+create index if not exists community_comments_parent_id_idx on public.community_comments(parent_comment_id, created_at desc);
 
 alter table public.topics enable row level security;
 alter table public.videos enable row level security;
