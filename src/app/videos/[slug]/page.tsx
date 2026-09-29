@@ -32,7 +32,13 @@ function extractHashtags(value: string | null | undefined) {
 function splitAnalysisLines(value: string) {
   return value
     .split(/\r?\n/)
-    .map(line => line.replace(/^\s*[-•*]\s*/, '').trim())
+    .map(line =>
+      line
+        .replace(/^\s*[-•*]\s*/, '')
+        .replace(/^\s*\d{2}(?=[A-Z])\s*/, '')
+        .replace(/^\s*\d{1,2}[.)\-:]\s+/, '')
+        .trim()
+    )
     .filter(Boolean);
 }
 
@@ -366,14 +372,11 @@ export default async function VideoPage({
                   {keyQuestionItems.length > 0 && (
                     <section className="analysisPanel analysisPanelQuestions">
                       <h3>The Key Questions</h3>
-                      <ol className="analysisQuestions">
+                      <ul className="analysisQuestions">
                         {keyQuestionItems.map((item, index) => (
-                          <li key={`${item}-${index}`}>
-                            <span className="analysisQuestionNumber">{String(index + 1).padStart(2, '0')}</span>
-                            <span>{item}</span>
-                          </li>
+                          <li key={`${item}-${index}`}>{item}</li>
                         ))}
-                      </ol>
+                      </ul>
                     </section>
                   )}
 
