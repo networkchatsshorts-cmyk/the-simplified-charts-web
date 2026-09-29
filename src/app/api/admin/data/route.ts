@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
 
 const VIDEO_FIELDS =
-  'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked,seo_description,seo_description_managed,what_we_cover,key_questions,our_approach';
+  'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked,seo_description,seo_description_managed,what_this_analysis_covers,key_levels_to_watch,how_to_read_the_setup';
 
 const VIDEO_BASIC_FIELDS =
   'id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked';
