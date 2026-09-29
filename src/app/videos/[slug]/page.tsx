@@ -360,7 +360,7 @@ export default async function VideoPage({
                 <div className="fullAnalysisContent">
                   {whatWeCoverItems.length > 0 && (
                     <section className="analysisPanel analysisPanelCover">
-                      <h3>What We Cover</h3>
+                      <h3>What This Analysis Covers</h3>
                       <ul className="analysisList">
                         {whatWeCoverItems.map((item, index) => (
                           <li key={`${item}-${index}`}>{item}</li>
@@ -371,7 +371,7 @@ export default async function VideoPage({
 
                   {keyQuestionItems.length > 0 && (
                     <section className="analysisPanel analysisPanelQuestions">
-                      <h3>The Key Questions</h3>
+                      <h3>Key Levels to Watch</h3>
                       <ul className="analysisQuestions">
                         {keyQuestionItems.map((item, index) => (
                           <li key={`${item}-${index}`}>{item}</li>
@@ -382,7 +382,7 @@ export default async function VideoPage({
 
                   {ourApproachBody && (
                     <section className="analysisPanel analysisPanelApproach">
-                      <h3>Our Approach</h3>
+                      <h3>How to Read the Setup</h3>
                       <div className="analysisApproach">
                         {approachParagraphs.map((paragraph, index) => (
                           <p key={`${paragraph}-${index}`}>{paragraph}</p>
