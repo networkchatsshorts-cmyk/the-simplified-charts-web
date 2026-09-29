@@ -551,12 +551,16 @@ textarea {
 }
 
 
-.fullAnalysisCard {
+ .fullAnalysisCard {
   padding: 32px;
   border-radius: 20px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid #e5e7eb;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+.fullAnalysisCard h2 {
+  margin: 0;
 }
 
 .fullAnalysisContent {
@@ -565,9 +569,10 @@ textarea {
   gap: 20px;
   width: 100%;
   max-width: none;
+  align-items: start;
 }
 
-.fullAnalysisContent > section {
+.analysisPanel {
   min-width: 0;
   padding: 24px;
   border: 1px solid #e5e7eb;
@@ -576,32 +581,108 @@ textarea {
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
-.fullAnalysisContent > section h3 {
+.analysisPanel h3 {
   margin: 0 0 18px;
   font-size: 1.15rem;
   line-height: 1.35;
 }
 
-.fullAnalysisContent > section .prose {
+.analysisList,
+.analysisQuestions {
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.75;
-  color: #24364b;
-  white-space: pre-line;
+  padding: 0;
+  list-style: none;
 }
 
-@media (max-width: 900px) {
-  .fullAnalysisContent {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+.analysisList {
+  display: grid;
+  gap: 12px;
+}
+
+.analysisList li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #24364b;
+}
+
+.analysisList li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #24364b;
+}
+
+.analysisQuestions {
+  display: grid;
+  gap: 14px;
+}
+
+.analysisQuestions li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eef1f5;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #24364b;
+}
+
+.analysisQuestions li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.analysisQuestionNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.analysisApproach {
+  display: grid;
+  gap: 14px;
+}
+
+.analysisApproach p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #24364b;
+}
+
+.analysisDisclaimer {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .analysisIntroLead {
   max-width: 860px;
   font-size: 1rem;
-  line-height: 1.65;
-  margin-bottom: 22px;
+  line-height: 1.6;
+  margin: 10px 0 22px;
   color: #4b5563;
 }
 
@@ -611,6 +692,12 @@ textarea {
 
 .fallbackDescriptionCard {
   margin-top: 0;
+}
+
+@media (max-width: 1000px) {
+  .fullAnalysisContent {
+    grid-template-columns: 1fr;
+  }
 }
 
 .adminSeoPreview,
