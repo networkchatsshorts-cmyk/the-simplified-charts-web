@@ -20,6 +20,14 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function extractHashtags(value: string | null | undefined) {
+  if (!value) return [];
+
+  const matches = value.match(/#[\p{L}\p{N}_]+/gu) || [];
+
+  return [...new Set(matches)];
+}
+
 const getVideo = cache(async (slug: string) => {
   const db = getSupabaseAdmin();
 
@@ -117,21 +125,22 @@ export async function generateMetadata({
   }
 
   const description =
-    video.seo_description ||
-    video.description?.slice(0, 160) ||
-    video.title;
+    video.seo_description_managed && video.seo_description?.trim()
+      ? video.seo_description.trim()
+      : undefined;
 
   return {
-    title: video.seo_title || video.title,
-    description,
+    title: video.title,
+
+    ...(description ? { description } : {}),
 
     alternates: {
       canonical: `/videos/${video.slug}`,
     },
 
     openGraph: {
-      title: video.seo_title || video.title,
-      description,
+      title: video.title,
+      ...(description ? { description } : {}),
       type: 'video.other',
       images: video.thumbnail_url
         ? [video.thumbnail_url]
@@ -168,10 +177,12 @@ export default async function VideoPage({
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
     name: video.title,
-    description:
-      video.seo_description ||
-      video.description ||
-      video.title,
+    ...(video.seo_description_managed &&
+    video.seo_description?.trim()
+      ? { description: video.seo_description.trim() }
+      : video.analysis_intro?.trim()
+        ? { description: video.analysis_intro.trim() }
+        : {}),
     thumbnailUrl: video.thumbnail_url
       ? [video.thumbnail_url]
       : [],
@@ -185,7 +196,8 @@ export default async function VideoPage({
       undefined,
 
     duration: video.duration_iso || undefined,
-    contentUrl: video.youtube_url || undefined,
+    // YouTube watch URLs are not the actual video file bytes, so we use
+    // embedUrl for the player and omit contentUrl.
     embedUrl,
     url: pageUrl,
     publisher: {
@@ -274,32 +286,79 @@ export default async function VideoPage({
           </div>
         </section>
 
-        <section className="section">
-          <h2>About this analysis</h2>
-
-          <div className="prose">
-            {video.description ||
-              video.seo_description ||
-              'Stock market analysis from The Simplified Charts.'}
-          </div>
-
-          {Array.isArray(video.key_points) &&
-            video.key_points.length > 0 && (
+        {(video.analysis_intro ||
+          (Array.isArray(video.key_points) &&
+            video.key_points.length > 0)) && (
+          <section className="section">
+            {video.analysis_intro && (
               <>
-                <h3>Key points</h3>
+                <div className="eyebrow">
+                  Short on time?
+                </div>
 
-                <ul>
-                  {video.key_points.map(
-                    (point: string, index: number) => (
-                      <li key={`${point}-${index}`}>
-                        {point}
-                      </li>
-                    )
-                  )}
-                </ul>
+                <h2>Check the Full Analysis Instead</h2>
+
+                <p className="small">
+                  If you do not have time to watch the full video,
+                  read the website analysis below for the key setup
+                  and context.
+                </p>
+
+                <div className="prose">
+                  {video.analysis_intro}
+                </div>
               </>
             )}
-        </section>
+
+            {Array.isArray(video.key_points) &&
+              video.key_points.length > 0 && (
+                <>
+                  <h3>Key points</h3>
+
+                  <ul>
+                    {video.key_points.map(
+                      (point: string, index: number) => (
+                        <li key={`${point}-${index}`}>
+                          {point}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </>
+              )}
+          </section>
+        )}
+
+        {extractHashtags(video.description).length > 0 && (
+          <section className="section">
+            <h3>Topics</h3>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              {extractHashtags(video.description).map(tag => (
+                <span
+                  key={tag}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    borderRadius: '999px',
+                    background: '#f3f4f6',
+                    color: '#4b5563',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
       </article>
 
       <script

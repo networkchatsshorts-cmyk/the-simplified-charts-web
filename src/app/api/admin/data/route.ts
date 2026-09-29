@@ -7,7 +7,7 @@ export async function GET() {
   const db = getSupabaseAdmin();
   const [topicsRes, videosRes, postsRes, commentsRes] = await Promise.all([
     db.from('topics').select('*').order('name'),
-    db.from('videos').select('id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked').order('published_at', { ascending: false }).limit(2000),
+    db.from('videos').select('id,title,youtube_video_id,slug,published_at,topic_id,content_type,classification_locked,seo_description,seo_description_managed,analysis_intro').order('published_at', { ascending: false }).limit(2000),
     db.from('community_posts').select('id,title,body,published,created_at').order('created_at', { ascending: false }).limit(200),
     db.from('community_comments').select('id,post_id,display_name,body,published,created_at,is_admin').order('created_at', { ascending: false }).limit(1000),
   ]);

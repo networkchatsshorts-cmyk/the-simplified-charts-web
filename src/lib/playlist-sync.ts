@@ -44,10 +44,6 @@ const VIDEO_COMPARE_FIELDS = [
   'category_id',
   'topic_id',
   'content_type',
-  'seo_title',
-  'seo_description',
-  'analysis_intro',
-  'key_points',
   'published',
 ] as const;
 
@@ -279,19 +275,11 @@ function videoRow(
       video.categoryId ?? null,
     topic_id: topicId,
     content_type: contentType,
-    seo_title: video.title,
-    seo_description:
-      video.description?.slice(
-        0,
-        160
-      ) ?? null,
-
-    // These are site-managed fields.
-    // Preserve existing values on updates.
-    analysis_intro: null,
-    key_points: [],
-
     published: true,
+
+    // SEO/editorial fields are intentionally omitted here.
+    // They are managed by the admin and must never be overwritten
+    // by YouTube playlist/channel syncs.
   };
 }
 

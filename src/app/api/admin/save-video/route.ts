@@ -31,7 +31,9 @@ export async function POST(req: Request) {
 
   const { data: existing, error: existingError } = await db
     .from('videos')
-    .select('id,slug')
+    .select(
+      'id,slug,seo_title,seo_description,seo_description_managed,analysis_intro,key_points,topic_id,content_type,classification_locked,original_topic_id'
+    )
     .eq('youtube_video_id', video.id)
     .maybeSingle();
 
@@ -67,12 +69,27 @@ export async function POST(req: Request) {
     channel_title: video.channelTitle,
     tags: video.tags || [],
     category_id: video.categoryId,
-    topic_id: topicId || null,
+    topic_id:
+      existing?.topic_id ??
+      topicId ??
+      null,
     seo_title: video.title,
     seo_description:
-      seoDescription || video.description?.slice(0, 160),
-    analysis_intro: analysisIntro || null,
-    key_points: keyPoints || [],
+      typeof seoDescription === 'string'
+        ? seoDescription.trim() || null
+        : existing?.seo_description ?? null,
+    seo_description_managed:
+      typeof seoDescription === 'string'
+        ? Boolean(seoDescription.trim())
+        : existing?.seo_description_managed ?? false,
+    analysis_intro:
+      typeof analysisIntro === 'string'
+        ? analysisIntro.trim() || null
+        : existing?.analysis_intro ?? null,
+    key_points:
+      Array.isArray(keyPoints)
+        ? keyPoints
+        : existing?.key_points ?? [],
     published: true,
     content_type:
       (video.durationSeconds ?? 0) <= 180 ? 'short' : 'long',

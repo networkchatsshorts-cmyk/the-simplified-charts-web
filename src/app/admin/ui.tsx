@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 type Topic = {
   id: string;
@@ -20,6 +20,9 @@ type Video = {
   topic_id: string | null;
   content_type: 'long' | 'short';
   classification_locked: boolean;
+  seo_description: string | null;
+  seo_description_managed: boolean;
+  analysis_intro: string | null;
 };
 
 type CommunityPostCategory = 'learning' | 'stocks-to-watch-next-week';
@@ -63,6 +66,10 @@ export default function AdminClient() {
   const [replyBody, setReplyBody] = useState('');
   const [status, setStatus] = useState('');
   const [draggedVideoId, setDraggedVideoId] = useState<string | null>(null);
+  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
+  const [seoDescriptionDraft, setSeoDescriptionDraft] = useState('');
+  const [analysisIntroDraft, setAnalysisIntroDraft] = useState('');
+  const [savingVideoContent, setSavingVideoContent] = useState(false);
 
   async function load() {
     const r = await fetch('/api/admin/data', { cache: 'no-store' });
@@ -278,6 +285,70 @@ export default function AdminClient() {
 
     setShortUrl('');
     await load();
+  }
+
+  function openVideoContentEditor(video: Video) {
+    setEditingVideoId(video.id);
+    setSeoDescriptionDraft(video.seo_description || '');
+    setAnalysisIntroDraft(video.analysis_intro || '');
+    setStatus('');
+  }
+
+  function closeVideoContentEditor() {
+    setEditingVideoId(null);
+    setSeoDescriptionDraft('');
+    setAnalysisIntroDraft('');
+  }
+
+  async function saveVideoContent(video: Video) {
+    setSavingVideoContent(true);
+    setStatus('Saving SEO description and website analysis...');
+
+    try {
+      const r = await fetch(
+        `/api/admin/videos/${encodeURIComponent(video.youtube_video_id)}/content`,
+        {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            seoDescription: seoDescriptionDraft,
+            analysisIntro: analysisIntroDraft,
+          }),
+        }
+      );
+
+      const d = await r.json();
+
+      if (!r.ok) {
+        setStatus(d.error || 'Could not save video SEO content.');
+        return;
+      }
+
+      setVideos(prev =>
+        prev.map(v =>
+          v.id === video.id
+            ? {
+                ...v,
+                seo_description: d.video?.seo_description ?? null,
+                seo_description_managed:
+                  d.video?.seo_description_managed ?? false,
+                analysis_intro: d.video?.analysis_intro ?? null,
+              }
+            : v
+        )
+      );
+
+      setStatus(`SEO content saved for "${video.title}".`);
+      closeVideoContentEditor();
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'Could not save video SEO content.'
+      );
+    } finally {
+      setSavingVideoContent(false);
+    }
   }
 
   async function setClassification(
@@ -1003,9 +1074,22 @@ export default function AdminClient() {
         <h2>Current Videos</h2>
 
         <p className="small">
-          VideoObject structured data is included on every
-          video page.
+          VideoObject structured data is included on every video page.
+          SEO description and Full Website Analysis are managed here
+          per YouTube video ID and are never overwritten by YouTube sync.
         </p>
+
+        <div className="card adminActionCard">
+          <div className="cardbody">
+            <strong>SEO description rule</strong>
+            <p className="small">
+              Keep the description useful and page-specific. This editor
+              uses a 160-character publishing limit as a practical target;
+              Google does not impose a fixed meta-description length. A saved
+              description becomes the page's active meta description.
+            </p>
+          </div>
+        </div>
 
         <table className="table">
           <thead>
@@ -1013,41 +1097,178 @@ export default function AdminClient() {
               <th>Title</th>
               <th>Type</th>
               <th>Published</th>
+              <th>SEO description</th>
+              <th>Website analysis</th>
               <th>VideoObject</th>
               <th>URL</th>
+              <th>Manage</th>
             </tr>
           </thead>
 
           <tbody>
             {videos.map(v => (
-              <tr key={v.id}>
-                <td>{v.title}</td>
+              <Fragment key={v.id}>
+                <tr>
+                  <td>
+                    <strong>{v.title}</strong>
+                    <div className="small">
+                      YouTube ID: {v.youtube_video_id}
+                    </div>
+                  </td>
 
-                <td>
-                  {v.content_type === 'short'
-                    ? 'Short'
-                    : 'Long'}
-                </td>
+                  <td>
+                    {v.content_type === 'short'
+                      ? 'Short'
+                      : 'Long'}
+                  </td>
 
-                <td>
-                  {v.published_at?.slice(0, 10)}
-                </td>
+                  <td>
+                    {v.published_at?.slice(0, 10)}
+                  </td>
 
-                <td>
-                  <strong>✅ Active</strong>
-                </td>
+                  <td>
+                    {v.seo_description_managed &&
+                    v.seo_description ? (
+                      <>
+                        <div>
+                          {v.seo_description}
+                        </div>
+                        <div className="small">
+                          {v.seo_description.length}/160 · Active
+                        </div>
+                      </>
+                    ) : (
+                      <span className="small">
+                        Not set / not active
+                      </span>
+                    )}
+                  </td>
 
-                <td>
-                  <a
-                    href={`/videos/${v.slug}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open ↗
-                  </a>{' '}
+                  <td>
+                    {v.analysis_intro ? (
+                      <strong>✅ Added</strong>
+                    ) : (
+                      <span className="small">
+                        Not added
+                      </span>
+                    )}
+                  </td>
 
-                </td>
-              </tr>
+                  <td>
+                    <strong>✅ Active</strong>
+                  </td>
+
+                  <td>
+                    <a
+                      href={`/videos/${v.slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open ↗
+                    </a>
+                  </td>
+
+                  <td>
+                    <button
+                      className="btn"
+                      onClick={() =>
+                        editingVideoId === v.id
+                          ? closeVideoContentEditor()
+                          : openVideoContentEditor(v)
+                      }
+                    >
+                      {editingVideoId === v.id
+                        ? 'Close'
+                        : 'Edit SEO'}
+                    </button>
+                  </td>
+                </tr>
+
+                {editingVideoId === v.id && (
+                  <tr>
+                    <td colSpan={8}>
+                      <div className="card">
+                        <div className="cardbody">
+                          <div className="eyebrow">
+                            Website content
+                          </div>
+
+                          <h3>{v.title}</h3>
+
+                          <p className="small">
+                            These fields are bound to YouTube video ID{' '}
+                            <strong>{v.youtube_video_id}</strong>.
+                            Playlist sync can change the YouTube title,
+                            description, thumbnail and slug, but it will
+                            not overwrite these fields.
+                          </p>
+
+                          <label htmlFor={`seo-description-${v.id}`}>
+                            SEO Description
+                          </label>
+
+                          <textarea
+                            id={`seo-description-${v.id}`}
+                            value={seoDescriptionDraft}
+                            onChange={e =>
+                              setSeoDescriptionDraft(e.target.value)
+                            }
+                            maxLength={160}
+                            placeholder="Write a unique description for this video page."
+                            rows={4}
+                          />
+
+                          <div className="small">
+                            {seoDescriptionDraft.length}/160
+                          </div>
+
+                          <label htmlFor={`analysis-intro-${v.id}`}>
+                            Full Website Analysis
+                          </label>
+
+                          <textarea
+                            id={`analysis-intro-${v.id}`}
+                            value={analysisIntroDraft}
+                            onChange={e =>
+                              setAnalysisIntroDraft(e.target.value)
+                            }
+                            maxLength={20000}
+                            placeholder="Write the full analysis for users who do not have time to watch the full video."
+                            rows={12}
+                          />
+
+                          <div className="small">
+                            This is the primary written analysis shown on the
+                            website video page. The SEO description is used only
+                            after you save it from this admin editor; YouTube
+                            description is never used as its fallback.
+                          </div>
+
+                          <button
+                            className="btn primary"
+                            disabled={savingVideoContent}
+                            onClick={() =>
+                              void saveVideoContent(v)
+                            }
+                          >
+                            {savingVideoContent
+                              ? 'Saving...'
+                              : 'Save Changes'}
+                          </button>
+
+                          <button
+                            className="btn"
+                            disabled={savingVideoContent}
+                            onClick={closeVideoContentEditor}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>
