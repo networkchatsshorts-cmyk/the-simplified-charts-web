@@ -28,6 +28,35 @@ function extractHashtags(value: string | null | undefined) {
   return [...new Set(matches)];
 }
 
+
+function splitAnalysisLines(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map(line => line.replace(/^\s*[-•*]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function splitAnalysisParagraphs(value: string) {
+  return value
+    .split(/\n\s*\n/)
+    .map(block => block.trim())
+    .filter(Boolean);
+}
+
+function extractAnalysisDisclaimer(value: string) {
+  const marker = /Educational content only\.[\s\S]*/i;
+  const match = value.match(marker);
+
+  if (!match || match.index === undefined) {
+    return { content: value, disclaimer: '' };
+  }
+
+  return {
+    content: value.slice(0, match.index).trim(),
+    disclaimer: match[0].trim(),
+  };
+}
+
 const getVideo = cache(async (slug: string) => {
   const db = getSupabaseAdmin();
 
@@ -181,11 +210,16 @@ export default async function VideoPage({
   const whatWeCover = video.what_we_cover?.trim() || '';
   const keyQuestions = video.key_questions?.trim() || '';
   const ourApproach = video.our_approach?.trim() || '';
-  const hasStructuredAnalysis = Boolean(whatWeCover || keyQuestions || ourApproach);
-  const analysisForSchema = [whatWeCover, keyQuestions, ourApproach]
+  const analysisDisclaimer = extractAnalysisDisclaimer(ourApproach);
+  const ourApproachBody = analysisDisclaimer.content;
+  const fullAnalysis = [whatWeCover, keyQuestions, ourApproachBody]
     .filter(Boolean)
     .join(' ');
-  const fullAnalysis = analysisForSchema;
+  const hasStructuredAnalysis = Boolean(fullAnalysis);
+
+  const whatWeCoverItems = splitAnalysisLines(whatWeCover);
+  const keyQuestionItems = splitAnalysisLines(keyQuestions);
+  const approachParagraphs = splitAnalysisParagraphs(ourApproachBody);
 
   const visibleFallbackDescription =
     !fullAnalysis && !activeSeoDescription
@@ -314,33 +348,52 @@ export default async function VideoPage({
                 <h2>Check the Full Analysis, Key Levels & BUY/SELL View</h2>
 
                 <p className="analysisIntroLead">
-                  Don&apos;t have time to watch the full video?
-                  Read the complete analysis below for the key setup,
-                  levels and context covered in the video.
+                  Don&apos;t have time to watch the full video? Start with the key setup, levels and approach below.
                 </p>
 
                 <div className="fullAnalysisContent">
-                  {whatWeCover && (
-                    <section>
+                  {whatWeCoverItems.length > 0 && (
+                    <section className="analysisPanel analysisPanelCover">
                       <h3>What We Cover</h3>
-                      <div className="prose">{whatWeCover}</div>
+                      <ul className="analysisList">
+                        {whatWeCoverItems.map((item, index) => (
+                          <li key={`${item}-${index}`}>{item}</li>
+                        ))}
+                      </ul>
                     </section>
                   )}
 
-                  {keyQuestions && (
-                    <section>
+                  {keyQuestionItems.length > 0 && (
+                    <section className="analysisPanel analysisPanelQuestions">
                       <h3>The Key Questions</h3>
-                      <div className="prose">{keyQuestions}</div>
+                      <ol className="analysisQuestions">
+                        {keyQuestionItems.map((item, index) => (
+                          <li key={`${item}-${index}`}>
+                            <span className="analysisQuestionNumber">{String(index + 1).padStart(2, '0')}</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ol>
                     </section>
                   )}
 
-                  {ourApproach && (
-                    <section>
+                  {ourApproachBody && (
+                    <section className="analysisPanel analysisPanelApproach">
                       <h3>Our Approach</h3>
-                      <div className="prose">{ourApproach}</div>
+                      <div className="analysisApproach">
+                        {approachParagraphs.map((paragraph, index) => (
+                          <p key={`${paragraph}-${index}`}>{paragraph}</p>
+                        ))}
+                      </div>
                     </section>
                   )}
                 </div>
+
+                {analysisDisclaimer && (
+                  <div className="analysisDisclaimer">
+                    {analysisDisclaimer.disclaimer}
+                  </div>
+                )}
               </div>
             ) : activeSeoDescription ? (
               <div className="card fallbackDescriptionCard">
