@@ -122,6 +122,7 @@ function getChangedFields(
 
   return VIDEO_COMPARE_FIELDS.filter(
     (field) =>
+      Object.prototype.hasOwnProperty.call(nextRow, field) &&
       !valuesEqual(
         field,
         existing[field],

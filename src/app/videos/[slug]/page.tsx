@@ -173,16 +173,27 @@ export default async function VideoPage({
     video.youtube_video_id
   );
 
+  const activeSeoDescription =
+    video.seo_description_managed && video.seo_description?.trim()
+      ? video.seo_description.trim()
+      : '';
+
+  const fullAnalysis = video.analysis_intro?.trim() || '';
+
+  const visibleFallbackDescription =
+    !fullAnalysis && !activeSeoDescription
+      ? video.description?.trim() || ''
+      : '';
+
   const videoSchema = {
     '@context': 'https://schema.org',
     '@type': 'VideoObject',
     name: video.title,
-    ...(video.seo_description_managed &&
-    video.seo_description?.trim()
-      ? { description: video.seo_description.trim() }
-      : video.analysis_intro?.trim()
-        ? { description: video.analysis_intro.trim() }
-        : {}),
+    ...(activeSeoDescription
+      ? { description: activeSeoDescription }
+      : fullAnalysis
+        ? { description: fullAnalysis }
+        : { description: `${video.title} — stock market analysis from The Simplified Charts.` }),
     thumbnailUrl: video.thumbnail_url
       ? [video.thumbnail_url]
       : [],
@@ -286,33 +297,50 @@ export default async function VideoPage({
           </div>
         </section>
 
-        {(video.analysis_intro ||
+        {(fullAnalysis ||
           (Array.isArray(video.key_points) &&
-            video.key_points.length > 0)) && (
-          <section className="section">
-            {video.analysis_intro && (
-              <>
+            video.key_points.length > 0) ||
+          visibleFallbackDescription) && (
+          <section className="section fullAnalysisSection">
+            {fullAnalysis ? (
+              <div className="fullAnalysisCard">
                 <div className="eyebrow">
                   Short on time?
                 </div>
 
                 <h2>Check the Full Analysis Instead</h2>
 
-                <p className="small">
-                  If you do not have time to watch the full video,
-                  read the website analysis below for the key setup
-                  and context.
+                <p className="analysisIntroLead">
+                  Don&apos;t have time to watch the full video?
+                  Read the complete analysis below for the key setup,
+                  levels and context covered in the video.
                 </p>
 
-                <div className="prose">
-                  {video.analysis_intro}
+                <div className="prose fullAnalysisContent">
+                  {fullAnalysis}
                 </div>
-              </>
-            )}
+              </div>
+            ) : activeSeoDescription ? (
+              <div className="card fallbackDescriptionCard">
+                <div className="cardbody">
+                  <div className="eyebrow">About this video</div>
+                  <p className="lead">{activeSeoDescription}</p>
+                </div>
+              </div>
+            ) : visibleFallbackDescription ? (
+              <div className="card fallbackDescriptionCard">
+                <div className="cardbody">
+                  <div className="eyebrow">About this video</div>
+                  <div className="prose">
+                    {visibleFallbackDescription}
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             {Array.isArray(video.key_points) &&
               video.key_points.length > 0 && (
-                <>
+                <div className="keyPointsBlock">
                   <h3>Key points</h3>
 
                   <ul>
@@ -324,7 +352,7 @@ export default async function VideoPage({
                       )
                     )}
                   </ul>
-                </>
+                </div>
               )}
           </section>
         )}

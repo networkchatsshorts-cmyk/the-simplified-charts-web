@@ -70,19 +70,8 @@ export async function POST(req: Request) {
       content_type: existing?.classification_locked
         ? existing.content_type || autoType
         : autoType,
-      seo_title: video.title,
-      seo_description:
-        seoDescription ??
-        video.description?.slice(0, 160) ??
-        null,
-      analysis_intro:
-        analysisIntro !== undefined
-          ? analysisIntro
-          : existing?.analysis_intro ?? null,
-      key_points:
-        Array.isArray(keyPoints)
-          ? keyPoints
-          : existing?.key_points ?? [],
+      // SEO/editorial fields are admin-managed. Do not populate them
+      // from YouTube data during a Short sync.
       published: true,
       original_topic_id:
         existing?.original_topic_id ??

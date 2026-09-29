@@ -59,11 +59,7 @@ export default function CommunitySections({
       setActiveCategory(getCategoryFromHash());
     }
 
-    // Apply the current hash on the initial client mount. This is important
-    // when navigating directly to /community#stocks-to-watch-next-week
-    // because the server cannot read window.location.hash.
     applyHash();
-
     window.addEventListener('hashchange', applyHash);
 
     return () => {

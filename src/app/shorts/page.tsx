@@ -29,7 +29,7 @@ export default async function ShortsPage() {
   const db = getSupabaseAdmin();
   const { data: videos } = await db
     .from('videos')
-    .select('id,title,slug,thumbnail_url,published_at,seo_description')
+    .select('id,title,slug,thumbnail_url,published_at,seo_description,seo_description_managed')
     .eq('published', true)
     .eq('content_type', 'short')
     .order('published_at', { ascending: false });
@@ -52,7 +52,7 @@ export default async function ShortsPage() {
         >
           <div className="grid">
             {(videos || []).map((v: any) => {
-              const searchText = [v.title, v.seo_description]
+              const searchText = [v.title, v.seo_description_managed ? v.seo_description : null]
                 .filter(Boolean)
                 .join(' ');
 
@@ -78,7 +78,7 @@ export default async function ShortsPage() {
                   <div className="cardbody">
                     <h3>{v.title}</h3>
                     <p className="small">
-                      {v.seo_description || 'Short-form market analysis.'}
+                      {v.seo_description_managed && v.seo_description ? v.seo_description : ''}
                     </p>
                     {v.published_at && (
                       <div className="videoDate">

@@ -540,6 +540,68 @@ textarea {
   color: var(--muted);
 }
 
+
+.fullAnalysisCard {
+  padding: 32px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+.fullAnalysisContent {
+  font-size: 1.05rem;
+  line-height: 1.9;
+  max-width: 980px;
+}
+
+.analysisIntroLead {
+  max-width: 860px;
+  font-size: 1rem;
+  line-height: 1.65;
+  margin-bottom: 22px;
+  color: #4b5563;
+}
+
+.keyPointsBlock {
+  margin-top: 28px;
+}
+
+.fallbackDescriptionCard {
+  margin-top: 0;
+}
+
+.adminSeoPreview,
+.adminContentPreview {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.adminSeoPreviewTitle {
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.adminSeoPreviewUrl {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+.adminSeoPreviewDescription {
+  margin-top: 8px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.adminContentPreview h4 {
+  margin: 8px 0 10px;
+}
 .adminActionCard {
   margin-top: 18px;
 }

@@ -30,7 +30,7 @@ export default async function LongVideosPage() {
   const { data: videos } = await db
     .from('videos')
     .select(
-      'id,title,slug,thumbnail_url,published_at,seo_description,topic_id'
+      'id,title,slug,thumbnail_url,published_at,seo_description,seo_description_managed,topic_id'
     )
     .eq('published', true)
     .eq('content_type', 'long')
@@ -96,7 +96,7 @@ export default async function LongVideosPage() {
                         <div className="eyebrow">{topic.name}</div>
                       )}
                       <h3>{v.title}</h3>
-                      <p className="small">{v.seo_description || ''}</p>
+                      <p className="small">{v.seo_description_managed && v.seo_description ? v.seo_description : ''}</p>
                       {v.published_at && (
                         <div className="videoDate">
                           Uploaded {formatDate(v.published_at)}

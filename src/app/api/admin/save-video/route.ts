@@ -73,7 +73,10 @@ export async function POST(req: Request) {
       existing?.topic_id ??
       topicId ??
       null,
-    seo_title: video.title,
+    // YouTube title remains the website title source. SEO/editorial
+    // fields stay admin-managed and are only changed when explicitly
+    // supplied to this endpoint.
+    seo_title: existing?.seo_title ?? video.title,
     seo_description:
       typeof seoDescription === 'string'
         ? seoDescription.trim() || null

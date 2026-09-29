@@ -110,7 +110,7 @@ export default async function TopicPage({ params }: { params: Promise<{ slug: st
               )}
               <div className="cardbody">
                 <h3>{v.title}</h3>
-                <p className="small">{v.seo_description || v.description?.slice(0, 150)}</p>
+                <p className="small">{v.seo_description_managed && v.seo_description ? v.seo_description : ''}</p>
                 {v.published_at && (
                   <div className="videoDate">Uploaded {formatDate(v.published_at)}</div>
                 )}

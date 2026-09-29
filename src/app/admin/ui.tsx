@@ -289,7 +289,9 @@ export default function AdminClient() {
 
   function openVideoContentEditor(video: Video) {
     setEditingVideoId(video.id);
-    setSeoDescriptionDraft(video.seo_description || '');
+    setSeoDescriptionDraft(
+      video.seo_description_managed ? video.seo_description || '' : ''
+    );
     setAnalysisIntroDraft(video.analysis_intro || '');
     setStatus('');
   }
@@ -1239,9 +1241,46 @@ export default function AdminClient() {
 
                           <div className="small">
                             This is the primary written analysis shown on the
-                            website video page. The SEO description is used only
-                            after you save it from this admin editor; YouTube
-                            description is never used as its fallback.
+                            website video page. The SEO description is used for
+                            page metadata and the video cards on the site.
+                            YouTube description stays as secondary backend data
+                            and is shown publicly only when both of these fields
+                            are empty.
+                          </div>
+
+                          <div className="adminSeoPreview">
+                            <div className="eyebrow">Google / page preview</div>
+
+                            <div className="adminSeoPreviewTitle">
+                              {v.title}
+                            </div>
+
+                            <div className="adminSeoPreviewUrl">
+                              https://thesimplifiedcharts.in/videos/{v.slug}
+                            </div>
+
+                            <div className="adminSeoPreviewDescription">
+                              {seoDescriptionDraft.trim() ||
+                                'No SEO description is set yet.'}
+                            </div>
+                          </div>
+
+                          <div className="adminContentPreview">
+                            <div className="eyebrow">Website preview</div>
+
+                            <h4>
+                              {analysisIntroDraft.trim()
+                                ? 'Check the Full Analysis Instead'
+                                : seoDescriptionDraft.trim()
+                                  ? 'About this video'
+                                  : 'YouTube description fallback'}
+                            </h4>
+
+                            <div className="prose">
+                              {analysisIntroDraft.trim() ||
+                                seoDescriptionDraft.trim() ||
+                                'The YouTube description will be used here only when both admin fields are empty.'}
+                            </div>
                           </div>
 
                           <button
