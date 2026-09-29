@@ -23,9 +23,9 @@ type Video = {
   classification_locked: boolean;
   seo_description: string | null;
   seo_description_managed: boolean;
-  what_we_cover: string | null;
-  key_questions: string | null;
-  our_approach: string | null;
+  what_this_analysis_covers: string | null;
+  key_levels_to_watch: string | null;
+  how_to_read_the_setup: string | null;
 };
 
 type CommunityPostCategory = 'learning' | 'stocks-to-watch-next-week';
@@ -124,9 +124,9 @@ export default function AdminClient() {
   const [draggedVideoId, setDraggedVideoId] = useState<string | null>(null);
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
   const [seoDescriptionDraft, setSeoDescriptionDraft] = useState('');
-  const [whatWeCoverDraft, setWhatWeCoverDraft] = useState('');
-  const [keyQuestionsDraft, setKeyQuestionsDraft] = useState('');
-  const [ourApproachDraft, setOurApproachDraft] = useState('');
+  const [whatThisAnalysisCoversDraft, setWhatWeCoverDraft] = useState('');
+  const [keyLevelsToWatchDraft, setKeyQuestionsDraft] = useState('');
+  const [howToReadTheSetupDraft, setOurApproachDraft] = useState('');
   const [savingVideoContent, setSavingVideoContent] = useState(false);
 
   type AdminSectionKey =
@@ -409,9 +409,9 @@ export default function AdminClient() {
     setSeoDescriptionDraft(
       video.seo_description_managed ? video.seo_description || '' : ''
     );
-    setWhatWeCoverDraft(video.what_we_cover || '');
-    setKeyQuestionsDraft(video.key_questions || '');
-    setOurApproachDraft(video.our_approach || '');
+    setWhatWeCoverDraft(video.what_this_analysis_covers || '');
+    setKeyQuestionsDraft(video.key_levels_to_watch || '');
+    setOurApproachDraft(video.how_to_read_the_setup || '');
     setStatus('');
   }
 
@@ -435,9 +435,9 @@ export default function AdminClient() {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             seoDescription: seoDescriptionDraft,
-            whatWeCover: whatWeCoverDraft,
-            keyQuestions: keyQuestionsDraft,
-            ourApproach: ourApproachDraft,
+            whatThisAnalysisCovers: whatThisAnalysisCoversDraft,
+            keyLevelsToWatch: keyLevelsToWatchDraft,
+            howToReadTheSetup: howToReadTheSetupDraft,
           }),
         }
       );
@@ -457,9 +457,9 @@ export default function AdminClient() {
                 seo_description: d.video?.seo_description ?? null,
                 seo_description_managed:
                   d.video?.seo_description_managed ?? false,
-                what_we_cover: d.video?.what_we_cover ?? null,
-                key_questions: d.video?.key_questions ?? null,
-                our_approach: d.video?.our_approach ?? null,
+                what_this_analysis_covers: d.video?.what_this_analysis_covers ?? null,
+                key_levels_to_watch: d.video?.key_levels_to_watch ?? null,
+                how_to_read_the_setup: d.video?.how_to_read_the_setup ?? null,
               }
             : v
         )
@@ -1405,7 +1405,7 @@ export default function AdminClient() {
                   </td>
 
                   <td>
-                    {v.what_we_cover || v.key_questions || v.our_approach ? (
+                    {v.what_this_analysis_covers || v.key_levels_to_watch || v.how_to_read_the_setup ? (
                       <strong>✅ Added</strong>
                     ) : (
                       <span className="small">
@@ -1492,12 +1492,12 @@ export default function AdminClient() {
                           </div>
 
                           <label htmlFor={`what-we-cover-${v.id}`}>
-                            What We Cover
+                            What This Analysis Covers
                           </label>
 
                           <textarea
                             id={`what-we-cover-${v.id}`}
-                            value={whatWeCoverDraft}
+                            value={whatThisAnalysisCoversDraft}
                             onChange={e => setWhatWeCoverDraft(e.target.value)}
                             maxLength={10000}
                             placeholder="What is being analysed in this video?"
@@ -1505,12 +1505,12 @@ export default function AdminClient() {
                           />
 
                           <label htmlFor={`key-questions-${v.id}`}>
-                            The Key Questions
+                            Key Levels to Watch
                           </label>
 
                           <textarea
                             id={`key-questions-${v.id}`}
-                            value={keyQuestionsDraft}
+                            value={keyLevelsToWatchDraft}
                             onChange={e => setKeyQuestionsDraft(e.target.value)}
                             maxLength={10000}
                             placeholder="What key questions does the analysis examine?"
@@ -1518,12 +1518,12 @@ export default function AdminClient() {
                           />
 
                           <label htmlFor={`our-approach-${v.id}`}>
-                            Our Approach
+                            How to Read the Setup
                           </label>
 
                           <textarea
                             id={`our-approach-${v.id}`}
-                            value={ourApproachDraft}
+                            value={howToReadTheSetupDraft}
                             onChange={e => setOurApproachDraft(e.target.value)}
                             maxLength={10000}
                             placeholder="How do we analyse the chart, levels, price action or setup?"
@@ -1557,34 +1557,34 @@ export default function AdminClient() {
                             <div className="eyebrow">Website preview</div>
 
                             <h4>
-                              Check the Full Analysis, Key Levels &amp; BUY/SELL View
+                              Check the Full Analysis, Key Levels &amp; Confirmation Candles
                             </h4>
 
                             <div className="prose">
-                              {whatWeCoverDraft.trim() && (
+                              {whatThisAnalysisCoversDraft.trim() && (
                                 <>
-                                  <strong>What We Cover</strong>
-                                  <div>{whatWeCoverDraft}</div>
+                                  <strong>What This Analysis Covers</strong>
+                                  <div>{whatThisAnalysisCoversDraft}</div>
                                 </>
                               )}
 
-                              {keyQuestionsDraft.trim() && (
+                              {keyLevelsToWatchDraft.trim() && (
                                 <>
-                                  <strong>The Key Questions</strong>
-                                  <div>{keyQuestionsDraft}</div>
+                                  <strong>Key Levels to Watch</strong>
+                                  <div>{keyLevelsToWatchDraft}</div>
                                 </>
                               )}
 
-                              {ourApproachDraft.trim() && (
+                              {howToReadTheSetupDraft.trim() && (
                                 <>
-                                  <strong>Our Approach</strong>
-                                  <div>{ourApproachDraft}</div>
+                                  <strong>How to Read the Setup</strong>
+                                  <div>{howToReadTheSetupDraft}</div>
                                 </>
                               )}
 
-                              {!whatWeCoverDraft.trim() &&
-                                !keyQuestionsDraft.trim() &&
-                                !ourApproachDraft.trim() &&
+                              {!whatThisAnalysisCoversDraft.trim() &&
+                                !keyLevelsToWatchDraft.trim() &&
+                                !howToReadTheSetupDraft.trim() &&
                                 'No website analysis sections are set yet.'}
                             </div>
                           </div>
