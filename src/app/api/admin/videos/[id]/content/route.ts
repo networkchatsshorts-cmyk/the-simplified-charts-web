@@ -30,9 +30,9 @@ export async function PATCH(
 
   if (
     typeof body?.seoDescription !== 'string' ||
-    typeof body?.whatWeCover !== 'string' ||
-    typeof body?.keyQuestions !== 'string' ||
-    typeof body?.ourApproach !== 'string'
+    typeof body?.whatThisAnalysisCovers !== 'string' ||
+    typeof body?.keyLevelsToWatch !== 'string' ||
+    typeof body?.howToReadTheSetup !== 'string'
   ) {
     return NextResponse.json(
       { error: 'SEO description and website analysis are required as text.' },
@@ -41,9 +41,9 @@ export async function PATCH(
   }
 
   const seoDescription = body.seoDescription.trim();
-  const whatWeCover = body.whatWeCover.trim();
-  const keyQuestions = body.keyQuestions.trim();
-  const ourApproach = body.ourApproach.trim();
+  const whatThisAnalysisCovers = body.whatThisAnalysisCovers.trim();
+  const keyLevelsToWatch = body.keyLevelsToWatch.trim();
+  const howToReadTheSetup = body.howToReadTheSetup.trim();
 
   if (seoDescription.length > SEO_DESCRIPTION_MAX) {
     return NextResponse.json(
@@ -55,9 +55,9 @@ export async function PATCH(
   }
 
   for (const [label, value] of [
-    ['What We Cover', whatWeCover],
-    ['The Key Questions', keyQuestions],
-    ['Our Approach', ourApproach],
+    ['What We Cover', whatThisAnalysisCovers],
+    ['The Key Questions', keyLevelsToWatch],
+    ['Our Approach', howToReadTheSetup],
   ] as const) {
     if (value.length > SECTION_MAX) {
       return NextResponse.json(
@@ -71,7 +71,7 @@ export async function PATCH(
 
   const { data: existing, error: lookupError } = await db
     .from('videos')
-    .select('id,youtube_video_id,seo_description,seo_description_managed,what_we_cover,key_questions,our_approach')
+    .select('id,youtube_video_id,seo_description,seo_description_managed,what_this_analysis_covers,key_levels_to_watch,how_to_read_the_setup')
     .eq('youtube_video_id', videoId)
     .maybeSingle();
 
@@ -96,13 +96,13 @@ export async function PATCH(
       // falls back to the YouTube description.
       seo_description: seoDescription || null,
       seo_description_managed: Boolean(seoDescription),
-      what_we_cover: whatWeCover || null,
-      key_questions: keyQuestions || null,
-      our_approach: ourApproach || null,
+      what_this_analysis_covers: whatThisAnalysisCovers || null,
+      key_levels_to_watch: keyLevelsToWatch || null,
+      how_to_read_the_setup: howToReadTheSetup || null,
     })
     .eq('youtube_video_id', videoId)
     .select(
-      'id,youtube_video_id,seo_description,seo_description_managed,what_we_cover,key_questions,our_approach,slug,title'
+      'id,youtube_video_id,seo_description,seo_description_managed,what_this_analysis_covers,key_levels_to_watch,how_to_read_the_setup,slug,title'
     )
     .single();
 
