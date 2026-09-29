@@ -55,14 +55,19 @@ export default function CommunitySections({
     useState<Category>(() => getCategoryFromHash());
 
   useEffect(() => {
-    function handleHashChange() {
+    function applyHash() {
       setActiveCategory(getCategoryFromHash());
     }
 
-    window.addEventListener('hashchange', handleHashChange);
+    // Apply the current hash on the initial client mount. This is important
+    // when navigating directly to /community#stocks-to-watch-next-week
+    // because the server cannot read window.location.hash.
+    applyHash();
+
+    window.addEventListener('hashchange', applyHash);
 
     return () => {
-      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('hashchange', applyHash);
     };
   }, []);
 
